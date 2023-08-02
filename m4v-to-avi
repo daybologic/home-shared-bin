@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+
+set -e
+set -x
+
+fileList=$(mktemp)
+find . -type f -name "*.m4v" >> "$fileList"
+while read line; do
+	outfile="${line%.m4v}.avi"
+	if [ -f "$outfile" ]; then
+		continue
+	fi
+	ffmpeg -i "${line}" -q:v 0 "$outfile"
+done < "$fileList"
+
+rm -f "$fileList"
+
+exit 0

@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+
+growisofs -iso-level 4 -allow-limited-size -speed 1 -J -R -udf -joliet-long -dvd-compat -Z /dev/sr0 .

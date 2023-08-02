@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+
+wavs=`find . -name "*.wav" -type f`
+for wav in $wavs; do
+	oggenc -q 6 "$wav"
+done
+
+exit 0

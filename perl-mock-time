@@ -1,0 +1,29 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use POSIX qw(strftime locale_h);
+
+my $year = 365 * 86400;
+
+my $userTime;
+my $time;
+if (defined($userTime = $ARGV[0])) {
+	$time = $userTime;
+} else {
+	$time = time();
+	my $random = (2 * $year) + (int(rand(6 * $year)));
+
+	if (rand(2) < 1) {
+		$time += $random;
+	} else {
+		$time -= $random;
+	}
+}
+
+setlocale(LC_TIME, "C");
+printf("Readonly my \$MOCK_TIME => %d; # %s\n", $time, scalar(gmtime($time)));
+printf("# %s\n", strftime("%a, %d %b %Y %H:%M:%S %z", gmtime($time)));
+printf("# %s\n", strftime("%Y-%m-%dT%H:%M:%S%z", gmtime($time)));
+
+exit(0);

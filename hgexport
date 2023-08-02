@@ -1,0 +1,9 @@
+#!/bin/sh
+
+changeset=$1
+if [ "x$1" = "x" ]; then
+	changeset=tip;
+fi
+
+hg export $changeset | colordiff
+exit "$?"

@@ -1,0 +1,13 @@
+#!/bin/sh
+
+set -e
+
+umask 077
+file="$1"
+
+tmpfile=`mktemp zhead.XXXXXX`
+zcat "$file" > "$tmpfile"
+head "$tmpfile"
+rm -f "$tmpfile"
+
+exit 0;

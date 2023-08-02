@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+set -xeuo pipefail
+
+for pgp in *.gpg; do
+	file "$pgp"
+	split -a 3 -b 64M "$pgp" "$pgp".
+	rm -fv "$pgp"
+done
+
+exit 0

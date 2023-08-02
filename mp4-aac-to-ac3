@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+
+set -ex
+
+if termux-battery-low; then
+	echo "Battery is too low to encode files"
+	exit 1
+fi
+
+for x in *.mp4; do
+	NAME=$(basename "$x" .mp4);
+	MKV="$NAME.mkv";
+
+	if [ -f "$MKV" ]; then
+		rm -f "$x"
+		continue;
+	fi
+
+	ffmpeg -i "$x" -map 0 -c copy -c:a ac3 "$MKV"
+	rm -f "$x"
+done

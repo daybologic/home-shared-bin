@@ -1,0 +1,5 @@
+#!/bin/sh
+
+set -e
+hg branches -c | grep f/ | grep -- -drp- | sort
+exit 0;

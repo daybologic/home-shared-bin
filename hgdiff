@@ -1,0 +1,14 @@
+#!/bin/bash
+
+hascolordiff=0
+
+which colordiff
+if [ "$?" -eq "0" ]; then
+	hascolordiff=1
+fi
+
+if [ "$hascolordiff" -eq "1" ]; then
+	hg diff $@ | colordiff
+else
+	hg diff $@
+fi

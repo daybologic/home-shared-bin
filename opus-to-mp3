@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+set -e
+
+if termux-battery-low; then
+	echo "Battery is too low to encode files"
+	exit 1
+fi
+
+find . -type f -name "*.opus" -exec bash -c 'FILE="$1"; ffmpeg -i "${FILE}" -vn -c:a libmp3lame -y "${FILE%.opus}.mp3";' _ '{}' \;
+exit 0

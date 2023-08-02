@@ -1,0 +1,233 @@
+#!/usr/bin/perl -w
+#
+# This script will accept an hg log as input on stdin, and produce an output
+# which can be copied and pasted into the debian/changelog, as a series of
+# bulletpoints.
+#
+
+use Getopt::Std;
+use strict;
+use warnings;
+use diagnostics;
+
+use constant EXIT_SUCCESS => (0);
+use constant EXIT_FAILURE => (1);
+use constant TRUE => (1);
+use constant FALSE => (0);
+use constant CHANGESET_LINE => qr/^changeset\:\s+(\d+)\:([0-9a-f]{12})$/;
+use constant SUMMARY_LINE => qr/^summary\:\s+(.*)$/;
+use constant DESC_LINE => qr/^description:/;
+use constant PARENT_LINE => qr/^parent\:\s+\d+\:([0-9a-f]{12})$/;
+use constant BRANCH_LINE => qr/^branch\:\s+(.*)$/;
+use constant USER_LINE => qr/^user\:\s+(.*)\s+\<.*\>$/;
+use constant DATE_LINE => qr/^date\:\s*(.*)$/;
+
+my $LimitChangeSetReached = 0;
+my $ChangeSetsPrinted = 0;
+
+sub PrintLog(@);
+sub Process($$$$$$$$$$$$$);
+sub Main();
+
+sub PrintLog(@)
+{
+	my $info = '';
+	my %Params = @_;
+	return 0 if ( $LimitChangeSetReached );
+	return 0 if ( $Params{'ParentCount'} < 2 && $Params{'MergesOnly'} );
+	if ( $Params{'Criteria'} ) {
+		if (index($Params{'Summary'}, $Params{'Criteria'}) == -1) {
+			return 0;
+		}
+	}
+	if ( $Params{'BranchRestrict'} ) {
+		if ( $Params{'BranchRestrict'} ne $Params{'Branch'} ) {
+			return 0;
+		}
+	}
+	if ( $Params{'UserRestrict'} ) {
+		if ( $Params{'UserRestrict'} ne $Params{'User'} ) {
+			return 0;
+		}
+	}
+	if ( $Params{'LimitLogCount'} && $ChangeSetsPrinted == $Params{'LimitLogCount'} ) {
+		$LimitChangeSetReached = 1;
+		return 0;
+	}
+	$ChangeSetsPrinted++;
+	$info .= $Params{'User'} . ', ' if ( $Params{'ShowUser'} );
+	$info .= $Params{'Date'} . ', ' if ( $Params{'ShowDate'} );
+	$info .= $Params{'ChangeLocalId'} . ':' if ( $Params{'IncludeLocal'} );
+	$info .= $Params{'ChangeId'};
+	$info .= ' (' . $Params{'Branch'} . ')' if ( $Params{'ShowBranch'} );
+	push(@{ $Params{'Output'} }, sprintf("  * %s: %s\n", $info, $Params{'Summary'}));
+	if ( $Params{'LimitChangeSet'} && $Params{'LimitChangeSet'} eq $Params{'ChangeId'} ) {
+		$LimitChangeSetReached = 1;
+	}
+	return 1;
+}
+
+sub Process($$$$$$$$$$$$$)
+{
+	my (
+		$Output, $Input, $MergesOnly, $BranchRestrict, $LimitChangeSet,
+		$LimitLogCount, $ShowUser, $User, $IncludeLocal, $RealBranch,
+		$ShowBranch, $ShowDate, $Criteria,
+	) = @_;
+
+	my ( $inChangeSet, $mergeSet, $thisBranch, $thisUser, $thisDate ) = ( 0, 0, 'default', 'nobody', 'epoch' );
+	my $chId = '0' x 12;
+	my $chLocalId = -1;
+	my $inDesc = 0;
+	my $printLog = 0;
+	my $desc = '';
+
+	$BranchRestrict = $RealBranch if ( $BranchRestrict && $BranchRestrict eq '.' );
+	foreach my $inputLine ( @$Input ) {
+		chomp($inputLine);
+
+		if ( $inChangeSet && $inDesc ) {
+			$inDesc = 0;
+			$desc = $inputLine;
+			$printLog++;
+		}
+		if ( !$inChangeSet && $inputLine =~ CHANGESET_LINE() ) {
+			$chLocalId = $1;
+			$chId = $2;
+			$inChangeSet = 1;
+			$mergeSet = 0;
+			$thisBranch = 'default';
+			next;
+		}
+		if ( $inChangeSet && ( $inputLine =~ SUMMARY_LINE() || $inputLine =~ DESC_LINE() && ($inDesc = 1)) ) {
+			if ( !$inDesc ) {
+				$desc = $1;
+				$printLog++;
+				$inChangeSet = 0;
+			}
+			next;
+		}
+
+		if ( $printLog ) {
+			PrintLog(
+				'Output' => $Output, 'ChangeId' => $chId, 'Summary' => $desc,
+				'MergesOnly' => $MergesOnly, 'ParentCount' => $mergeSet,
+				'BranchRestrict' => $BranchRestrict, Branch => $thisBranch,
+				'LimitChangeSet' => $LimitChangeSet, 'LimitLogCount' => $LimitLogCount,
+				'IncludeLocal' => $IncludeLocal,
+				'User' => $thisUser, 'ShowUser' => $ShowUser,
+				'UserRestrict' => $User, 'ChangeLocalId' => $chLocalId,
+				'ShowBranch' => $ShowBranch, 'ShowDate' => $ShowDate, 'Date' => $thisDate,
+				'Criteria' => $Criteria,
+			);
+			$printLog = 0;
+			$desc = '';
+			$inChangeSet = 0;
+		}
+
+		next unless ( $inChangeSet );
+		if ( $inputLine =~ PARENT_LINE() ) {
+			$mergeSet++;
+		} elsif ( $inputLine =~ BRANCH_LINE() ) {
+			$thisBranch = $1;
+		} elsif ( $inputLine =~ USER_LINE() ) {
+			$thisUser = $1;
+		} elsif ( $inputLine =~ DATE_LINE() ) {
+			$thisDate = $1;
+		}
+	}
+}
+
+sub realBranch() {
+	if ( open(my $h, '<', '.hg/branch') ) {
+		my $realBranch = <$h>;
+		chomp($realBranch);
+		close($h);
+		return $realBranch;
+	}
+	return 'default';
+}
+
+sub Main()
+{
+	my $readStdin = 0;
+	my (@input, @output);
+	my %opts = ( );
+	my ( $limitChangeSet, $limitLogCount ) = ( undef, 0 );
+	my $realBranch = realBranch();
+
+	if ( !$realBranch ) {
+		printf(STDERR "Error reading branch name: %s\n", $!);
+		return EXIT_FAILURE();
+	}
+
+	# -u restrict to user
+	# -B show branch
+	# -U show user
+	# -l limit,
+	# -b branch,
+	# -i input,
+	# -o output (defaults to stdin/stdout).
+	# -m Merges only,
+	# -L Include local changeset IDs,
+	# -k key (summary grep)
+	getopts('Bu:Ul:b:i:o:mLDk:', \%opts);
+
+	foreach (@ARGV) {
+		if ($_ eq '-') {
+			$readStdin++;
+			last;
+		}
+	}
+
+	if ( defined($opts{'l'}) ) {
+		my $l = $opts{'l'};
+		if ( $l =~ m/^[0-9a-f]{12}$/ ) {
+			$limitChangeSet = $l; # A changeset which sets a barrier on reporting
+		} elsif ( $l =~ m/^\d+$/ ) {
+			$limitLogCount = $l; # A limit of number of printed summaries
+		} else {
+			printf(STDERR "Error: Invalid -l parameter, must be changeset hash or numeric limit: %s\n", $l);
+			return EXIT_FAILURE();
+		}
+	}
+
+	if ( defined($opts{'i'}) && length($opts{'i'}) ) {
+		if ( open(my $f, '<', $opts{'i'}) ) {
+			@input = <$f>;
+			close($f);
+		} else {
+			printf(STDERR "Error reading \'%s\' - %s\n", $opts{'i'}, $!);
+			return EXIT_FAILURE();
+		}
+	} else {
+		if ($readStdin) {
+			@input = <STDIN>;
+		} else {
+			@input = `hg log`;
+		}
+	}
+
+	Process(\@output, \@input, $opts{'m'}, $opts{'b'}, $limitChangeSet, $limitLogCount, $opts{'U'}, $opts{'u'}, $opts{'L'}, $realBranch, $opts{'B'}, $opts{'D'}, $opts{k});
+
+	if ( defined($opts{'o'}) && length($opts{'o'}) ) {
+		my $err = TRUE();
+		if ( open(my $f, '>', $opts{'o'}) ) {
+			$err = FALSE();
+			if ( !print($f @output) ) {
+				$err = TRUE();
+				last;
+			}
+			close($f);
+		}
+		if ( $err ) {
+			printf(STDERR "Error writing \'%s\' - %s\n", $opts{'o'}, $!);
+			return EXIT_FAILURE();
+		}
+	} else {
+		print @output;
+	}
+	return EXIT_SUCCESS();
+}
+
+exit(Main());

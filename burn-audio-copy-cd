@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+D=$(mktemp -d)
+echo "Files will be written to '$D'"
+sleep 5
+
+cleanup() {
+	rm -rv "$D"
+}
+
+trap cleanup 0
+
+cd "$D/"
+cdparanoia -B -p
+
+echo 'replace disc with writable media unit and hit a key to proceed'
+read -n 1
+
+wodim -v -dev=/dev/sr0 -dao -audio *.raw
+
+echo 'success; hit a key to exit and delete temporary files'
+read -n 1
+
+exit 0

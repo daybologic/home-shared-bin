@@ -1,0 +1,61 @@
+#!/bin/bash
+###########
+# 
+# Batch convert DVD Videos with HandBrake CLI
+# The script will recursively look for "VIDEO_TS" folders and parse them
+# 
+# Read this to understand:
+# https://mattgadient.com/2013/06/12/a-best-settings-guide-for-handbrake-0-9-9/
+# http://www.thewebernets.com/2015/02/28/easiest-best-optimal-settings-for-handbrake-dvd-video-conversion-on-mac-windows-and-linux/
+#
+
+for i in `find . -type d -iname "video_ts"`
+do
+	echo "$i"
+	# this is a bit dirty hack to remove VIDEO_TS part, and later leave only folder (movie) name
+	name=${i%/*}  
+	name=${name#*/}
+	name=${name#*/}
+	name=${name#*/}
+	name=${name#*/}
+	# end of dirty hack
+
+	name="film" # Above doesn't work
+
+	########### OPTIONS EXPLAINED
+	#
+	### VIDEO OPTIONS
+	# To understand the quality (RF) setting:
+	# https://mattgadient.com/2013/06/20/comparing-x264-rf-settings-in-handbrake-examples/
+	OP="-e x264 -q 20"
+	# The encoder-preset time vs size is explained here: 
+	# https://mattgadient.com/2014/01/06/handbrake-rf-slower-speeds-craziness/
+	#
+	# I recommend running 'ultrafast' and if you like the output, run it again with 'veryslow'
+	# OP="$OP --encoder-preset veryslow"
+	OP="$OP --encoder-preset veryslow"
+	OP="$OP --encoder-tune film"
+	OP="$OP --encoder-profile high"
+	# Level setting depends somewhat on resolution setting
+	# https://en.wikipedia.org/wiki/H.264/MPEG-4_AVC#Levels
+	OP="$OP --encoder-level 3.1"
+	#
+	### PICTURE OPTIONS 
+	# Those settings resulted for most accurate output picture (close to original)
+	OP="$OP --keep-display-aspect"
+	OP="$OP --loose-anamorphic"
+	#
+	### AUDIO OPTIONS
+	# All tracks, ac3 is good enough for me
+	#OP="$OP --all-audio"
+	OP="$OP --aencoder copy:ac3" 
+	#
+	### SUBTITLE OPTIONS
+	# I like to keep subtitles
+	#OP="$OP --all-subtitles"
+
+	### Show time!
+	for t in `seq 1 99`; do
+		HandBrakeCLI -i "$i" -t $t -o "$name$t.mp4" $OP
+	done
+done

@@ -1,0 +1,4 @@
+#!/bin/sh
+
+set -e
+split -a 3 -b 32M $1.tgz $1.tgz.

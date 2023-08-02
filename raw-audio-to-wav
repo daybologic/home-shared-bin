@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+for x in *.raw; do
+	tmpwav=$(mktemp).wav
+	sox -t raw -r 44100 -b 16 -e signed-integer -B -c 2 "$x" "$tmpwav"
+	mv "$tmpwav" "$x"
+	baseName=$(basename "$x" .raw)
+	mv "$x" "$baseName.wav"
+done
+
+exit 0

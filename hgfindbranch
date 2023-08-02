@@ -1,0 +1,6 @@
+#!/bin/sh
+
+#set -e
+
+for r in */.hg; do cd `dirname $r`; hg branches -c | grep -- $1 && pwd ; cd ..; done
+exit 0;

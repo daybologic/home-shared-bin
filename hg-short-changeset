@@ -1,0 +1,22 @@
+#!/usr/bin/perl
+
+use POSIX qw(EXIT_SUCCESS EXIT_FAILURE);
+use strict;
+use warnings;
+
+sub shorten {
+	my ($input) = @_;
+	return substr($input, 0, 12);
+}
+
+if (scalar(@ARGV) != 1) {
+	exit(EXIT_FAILURE);
+}
+
+if($ARGV[0] =~ m/(.*)?cs=([0-9a-f]{12,})/) {
+	printf("%scs=%s\n", $1, shorten($2));
+} else {
+	printf("%s\n", shorten($ARGV[0]));
+}
+
+exit(EXIT_SUCCESS);

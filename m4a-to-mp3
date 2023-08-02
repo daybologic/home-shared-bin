@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+set -xeuo pipefail
+
+if termux-battery-low; then
+	echo "Battery is too low to encode files"
+	exit 1
+fi
+
+#find . -type f -name "*.m4a" -exec bash -c 'FILE="$1"; rm -fv "${FILE%.m4a}.mp3";' _ '{}' \;
+find . -type f -name "*.m4a" -exec bash -c 'FILE="$1"; ffmpeg -hide_banner -loglevel panic -i "${FILE}" -c:v copy -c:a libmp3lame -q:a 6 "${FILE%.m4a}.mp3";' _ '{}' \;
+exit 0

@@ -1,0 +1,19 @@
+#!/usr/bin/env perl
+
+sub main {
+	my $haystack = '';
+	for my $arg (@ARGV) {
+		unless ($haystack) {
+			$haystack = $arg; # first argument is the haystack
+			next;
+		}
+
+		last unless ($haystack);
+
+		return 0 if ($haystack =~ m/$arg/);
+	}
+
+	return 1;
+}
+
+exit(main());

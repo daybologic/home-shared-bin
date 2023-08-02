@@ -1,0 +1,100 @@
+#!/usr/bin/env perl
+
+use strict;
+use warnings;
+use English;
+use Data::Dumper;
+use File::stat;
+use POSIX qw(EXIT_FAILURE EXIT_SUCCESS);
+
+sub main {
+	my %target = (
+		group => $GID,
+		mode  => 0,
+		user  => ($UID || 'palmer'),
+	);
+
+	if ($EUID > 0) {
+		print(STDERR 'This script must be run as ' . getpwuid(0) . "\n");
+		return EXIT_FAILURE;
+	}
+
+	for (my $argi = 0; $argi < scalar(@ARGV); $argi++) {
+		my $arg = $ARGV[$argi];
+
+		if ($argi == 0) {
+			($target{user}, $target{group}) = split(m/:/, $arg);
+
+			if ($target{user} !~ m/^\d+/) {
+				$target{user} = getpwnam($target{user});
+			}
+
+			if ($target{group} !~ m/^\d+/) {
+				$target{group} = getpwnam($target{group});
+			}
+		} elsif ($argi == 1) {
+			$target{mode} = oct($arg);
+		} else {
+			my $stat = stat($arg);
+			print STDERR Dumper \$stat;
+
+			if (!compareUser($stat->uid, $target{user}) || !compareGroup($stat->gid, $target{group})) {
+				if (!runChown($arg, \%target)) {
+					return EXIT_FAILURE;
+				}
+			}
+
+			if (!compareMode($stat->mode, $target{mode})) {
+				if (!runChmod($arg, $target{mode})) {
+					return EXIT_FAILURE;
+				}
+			}
+		}
+	}
+
+	return EXIT_SUCCESS;
+}
+
+sub compareUser {
+	my ($real, $target) = @_;
+	return ($real == $target);
+}
+
+sub compareGroup {
+	my ($real, $target) = @_;
+	return ($real == $target);
+}
+
+sub compareMode {
+	my ($real, $target) = @_;
+	my $mode = $real & 07777;
+
+	printf(STDERR "real %o, target %o\n", $mode, $target);
+	return ($mode == $target);
+}
+
+sub runChown {
+	my ($path, $target) = @_;
+	my $string = "chown $target->{user}:$target->{group} \"$path\": ";
+	if (chown($target->{user}, $target->{group}, $path)) {
+		print(STDERR "${string}SUCCESS\n");
+		return 1;
+	}
+
+	print(STDERR "${string}$ERRNO\n");
+	return 0;
+}
+
+sub runChmod {
+	my ($path, $mode) = @_;
+	my $string = sprintf("chmod %o \"%s\": ", $mode, $path);
+	if (chmod($mode, $path)) {
+		print(STDERR "${string}SUCCESS\n");
+		return 1;
+	}
+
+	print(STDERR "${string}$ERRNO\n");
+	return 0;
+}
+
+exit(main());

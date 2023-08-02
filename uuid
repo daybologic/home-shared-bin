@@ -1,0 +1,37 @@
+#!/usr/bin/env perl
+
+package main;
+use strict;
+use warnings;
+use Getopt::Std;
+use JSON qw(decode_json);
+use LWP::UserAgent;
+use MIME::Base64;
+use POSIX qw(EXIT_FAILURE EXIT_SUCCESS);
+
+sub main {
+	my $ua = LWP::UserAgent->new;
+	$ua->timeout(120);
+	$ua->env_proxy;
+
+	my %opts;
+	if (!getopts('v:', \%opts)) {
+		return EXIT_FAILURE;
+	}
+
+	my $uri = 'http://perlapi.daybologic.co.uk/v2/uuid/generate?';
+	$uri .= join('=', each(%opts));
+
+	my $response = $ua->get($uri);
+	if ($response->is_success) {
+		my $decoded = decode_json(decode_base64($response->decoded_content));
+		printf("%s\n", $decoded->{results}->[0]->{value});
+	} else {
+		printf(STDERR "%s\n", $response->status_line);
+		return EXIT_FAILURE;
+	}
+
+	return EXIT_SUCCESS;
+}
+
+exit(main());

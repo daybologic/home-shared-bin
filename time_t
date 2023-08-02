@@ -1,0 +1,41 @@
+#!/usr/bin/perl
+
+package main;
+use POSIX qw(EXIT_SUCCESS tzset);
+use strict;
+use warnings;
+
+sub main {
+	my (@args) = @_;
+
+	my $verbose = 0;
+	my $t;
+
+	$ENV{TZ} = 'UTC';
+	tzset();
+
+	foreach my $arg (@args) {
+		if ($arg eq '-v') {
+			$verbose++;
+		} elsif ($arg =~ m/^(\d+)$/) {
+			$t = $1;
+		} else {
+			die("Unknown argument: $arg");
+		}
+	}
+
+	if (!defined($t)) {
+		$t = time();
+	}
+
+	if ($verbose) {
+		my $timeStr = gmtime($t);
+		printf("%lu # %s\n", $t, $timeStr);
+	} else {
+		printf("%lu\n", $t);
+	}
+
+	return EXIT_SUCCESS;
+}
+
+exit(main(@ARGV));

@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+
+if termux-battery-low; then
+	echo "Battery is too low to encode files"
+	exit 1
+fi
+
+wavs=`find . -name "*.wav" -type f`
+for wav in "$wavs"; do
+	lame -h "$wav"
+done
+
+exit 0

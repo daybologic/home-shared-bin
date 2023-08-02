@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+set -x
+
+EXIT_FAILURE=1
+EXIT_SUCCESS=0
+
+inputDir=mass
+
+if [ ! -d "$inputDir" ]; then
+	echo "$inputDir/ not found"
+	exit $EXIT_FAILURE
+fi
+
+array=()
+while IFS=  read -r -d $'\0'; do
+	array+=("$REPLY")
+done < <(find "$inputDir" -type f -print0 | sort -z)
+sz=${#array[@]}
+echo $sz
+
+i=0
+discNo=1
+usedDiscSizeBytes=0
+#discSizeBytes=47689770416
+discSizeBytes=24600000000
+
+# this figure is a BR which includes 5% redundancy data (par2)
+discSizeBytes=23370000000
+discSizeBytes=20000000000
+
+#discSizeBytes=650000000
+#discSizeBytes=4500000000
+#discSizeBytes=19000000000
+for (( i=0; i<$sz; i++ )); do
+	originalPath="${array[$i]}"
+	filename=$(basename "${array[$i]}")
+	fileSize=$(stat --printf="%s" "$originalPath")
+	echo $fileSize
+	usedDiscSizeBytes=$(expr $usedDiscSizeBytes + $fileSize)
+	echo $usedDiscSizeBytes
+	if [ $usedDiscSizeBytes -ge $discSizeBytes ]; then
+		usedDiscSizeBytes=0
+		discNo=$((discNo+1))
+	fi
+
+	mkdir -p "disc$discNo"
+	cp -lv "$inputDir/$filename" "disc$discNo/$filename"
+done
+
+exit $EXIT_SUCCESS

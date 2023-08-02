@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+
+set -xeuo pipefail
+
+function fromRepo {
+	hg pull
+	hg push -r tip --new-branch; sleep 12; hgpuppetrun
+}
+
+function fromMaster {
+	sudo puppet agent --test --onetime
+}
+
+function isRepo {
+	cs=$(hg log -r 0 --template '{node}\n')
+	needle='5868b9267f6cba611d7de34d5cee557c34b62a29'
+	if [ -z "$cs" ]; then
+		return 1
+	fi
+
+	if [[ "$cs" == "$needle" ]]; then
+		return 0
+	fi
+
+	return 1
+}
+
+if isRepo; then
+	fromRepo
+else
+	fromMaster
+fi
+
+exit 0

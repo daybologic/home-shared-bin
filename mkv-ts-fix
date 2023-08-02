@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+
+set -xeuo pipefail
+
+for x in *.mkv; do
+	NAME=$(basename "$x" .mkv);
+	OUTPUT="$NAME-ts.mkv";
+
+	if [ -f "$OUTPUT" ]; then
+		continue;
+	fi
+
+	h264=$(mktemp).h264
+	ac3=$(mktemp).ac3
+
+	mkvextract tracks "$x" "0:$h264" "1:$ac3"
+	mkvmerge -o "$OUTPUT" "$h264" "$ac3"
+	rm -f "$x" "$h264" "$ac3"
+done

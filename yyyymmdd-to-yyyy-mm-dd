@@ -1,0 +1,29 @@
+#!/usr/bin/env perl
+
+use strict;
+use warnings;
+use IO::Dir;
+
+sub main {
+	my $dir = IO::Dir->new('.');
+
+	return 1 if (!defined($dir));
+
+	while (my $ent = $dir->read()) {
+		next if (index($ent, '.') == 0);
+		if ($ent =~ m/^\d{6}(\d{2})$/) {
+			my $day = $1;
+			#printf("%s: %s\n", $ent, $day);
+			my @files = glob("$ent/*");
+			foreach my $f (@files) {
+				$f = (split(m/\//, $f))[1];
+				printf("rename '%s' ->  '%s'\n", "$ent/$f", "$day/$f");
+				rename "$ent/$f", "$day/$f";
+			}
+		}
+	}
+
+	return 0;
+}
+
+exit(main());

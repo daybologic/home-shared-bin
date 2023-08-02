@@ -1,0 +1,17 @@
+#!/bin/sh -x
+
+set -e
+
+umask 077
+file="$1"
+
+if [ -z "$EDITOR" ]; then
+	EDITOR=vi
+fi
+
+tmpfile=`mktemp zread.XXXXXX`
+zcat "$file" > "$tmpfile"
+$EDITOR -R "$tmpfile"
+rm -f "$tmpfile"
+
+exit 0;

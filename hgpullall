@@ -1,0 +1,11 @@
+#!/bin/bash
+
+#set -e
+set -x
+
+for r in $(cat ../r.txt); do
+	hg init "$r"
+	hg pull -R "$r";
+done
+
+exit 0;

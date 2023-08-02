@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+
+set -x
+set -eo pipefail
+
+TARGET=/tmp/$USER/Trash
+mkdir -p $TARGET
+
+if [ -d "/Volumes/trash/palmer" ]; then
+	TARGET="/Volumes/trash/palmer"
+elif [ "$XDG_DATA_HOME" = "" ]; then
+	TARGET="/tmp/`whoami`/Trash"
+	if [ ! -d "$TARGET" ]; then
+		TARGET="$HOME/.Trash"
+		mkdir -p "$TARGET"
+	fi
+else
+	TARGET="$XDG_DATA_HOME/Trash"
+fi
+
+rsync -rv --progress --bwlimit=45000 "$@" "$TARGET/"
+rm -rfv "$@"

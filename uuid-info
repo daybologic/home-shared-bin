@@ -1,0 +1,31 @@
+#!/usr/bin/env perl
+
+package main;
+use strict;
+use warnings;
+use Data::Dumper;
+use JSON;
+use LWP::UserAgent qw(decode_json);
+use MIME::Base64;
+use POSIX qw(EXIT_FAILURE EXIT_SUCCESS);
+
+sub main {
+	my $ua = LWP::UserAgent->new;
+	$ua->timeout(10);
+	$ua->env_proxy;
+
+	my $uri = "http://perlapi.daybologic.co.uk/v2/uuid/info/$ARGV[0]";
+	my $response = $ua->get($uri);
+
+	if ($response->is_success) {
+		my $decoded = decode_json(decode_base64($response->decoded_content));
+		printf("%s\n", Dumper $decoded);
+	} else {
+		printf(STDERR "%s\n", $response->status_line);
+		return EXIT_FAILURE;
+	}
+
+	return EXIT_SUCCESS;
+}
+
+exit(main());

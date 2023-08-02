@@ -1,0 +1,24 @@
+#!/usr/bin/perl -w
+
+package main;
+use Errno;
+use POSIX qw(EXIT_SUCCESS);
+#use strict;
+use warnings;
+
+sub main {
+	my $err = 0;
+	foreach my $mnemonic (keys(%!)) {
+		$mnemonic = "Errno::$mnemonic";
+		if (exists &$mnemonic) {
+			$! = &$mnemonic;
+		}
+		$mnemonic =~ s/^Errno:://;
+		my $value = $!{$mnemonic};
+		printf("%s\t%s\t\"%s\"\n", $mnemonic, $value, $!);
+	}
+
+	return EXIT_SUCCESS;
+}
+
+exit(main());

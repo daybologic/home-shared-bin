@@ -1,0 +1,7 @@
+#!/bin/sh
+
+for branch in `git branch -r | grep -vE "HEAD|main"`; do
+	git checkout --track ${branch#origin/}
+done
+
+exit 0

@@ -1,0 +1,63 @@
+#!/usr/bin/env perl
+
+use IO::File;
+use strict;
+use warnings;
+
+my $versionFile = '/etc/debian_version';
+
+my %rxMap = (
+	1.1 => 'Buzz',
+	1.2 => 'Rex',
+	1.3 => 'Bo',
+	2.0 => 'Hamm',
+	2.1 => 'Slink',
+	2.2 => 'Potato',
+	3.0 => 'Woody',
+	3.1 => 'Sarge',
+	4.0 => 'Etch',
+	5.0 => 'Lenny',
+	6.0 => 'Squeeze',
+	7 => 'Wheezy',
+	8 => 'Jessie',
+	9 => 'Stretch',
+	10 => 'Buster',
+	11 => 'Bullseye',
+);
+
+sub ver {
+	my ($file) = @_;
+
+	my $actualVersion = '';
+	my $fh = IO::File->new($file, 'r');
+	if (defined($fh)) {
+		$actualVersion = <$fh>;
+		chomp($actualVersion);
+	} else {
+		return 'error';
+	}
+
+	if ($actualVersion) {
+		while (my ($ver, $codename) = each(%rxMap)) {
+			my $rx = qr/^$ver/;
+			if ($actualVersion =~ $rx) {
+				return $codename;
+			}
+		}
+	}
+
+	return 'unknown';
+}
+
+sub main {
+	my $codename = ver($versionFile);
+	printf("%s\n", $codename);
+
+	if ($codename eq 'unknown' || $codename eq 'error') {
+		return 1;
+	}
+
+	return 0;
+}
+
+exit(main());

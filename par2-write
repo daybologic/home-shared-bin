@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+
+set -xeuo pipefail
+
+rm -rfv @eaDir
+par2 c "-r$1" -R parity.par2 *
+
+md5sum *.par2 > CHECKSUM.MD5 &
+sha1sum *.par2 > CHECKSUM.SHA1 &
+sha224sum *.par2 > CHECKSUM.SHA224 &
+sha256sum *.par2 > CHECKSUM.SHA256 &
+sha384sum *.par2 > CHECKSUM.SHA384 &
+sha512sum *.par2 > CHECKSUM.SHA512 &
+
+wait
+
+sign-chksum
+
+exit 0

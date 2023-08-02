@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+
+set -x
+set -euo pipefail
+
+if termux-battery-low; then
+	echo "Battery is too low to encode files"
+	exit 1
+fi
+
+for mp4 in *.mp4; do
+	baseName=$(basename "$mp4" .mp4)
+	out="$baseName.mkv"
+	ffmpeg -i "$mp4" -c:v libx264 -crf 20 -preset veryslow -c:a copy -vf scale=-2:480 "$out"
+	rm -f "$mp4"
+done
+
+exit 0

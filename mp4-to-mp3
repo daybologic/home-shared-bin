@@ -1,0 +1,66 @@
+#!/usr/bin/env bash
+
+set -x
+#set -euo pipefail
+
+
+REGEX_SYNOLOGY="@eaDir$"
+
+deleteList=()
+
+convert() {
+	x="$1"
+	echo "$x" | grep -qE "mp4$"
+	if [ $? -ne 0 ]; then
+		return
+	fi
+
+	NAME=$(basename "$x" .mp4);
+
+	MP3="$NAME.mp3";
+
+	if [ -f "$MP3" ]; then
+		rm "$x"
+		return;
+	fi
+
+	if contains "$NAME" "keep"; then
+		return;
+	fi
+
+	echo "$MP3"
+	ffmpeg -hide_banner -loglevel panic -i "$x" -vn -acodec libmp3lame "$MP3" &
+	deleteList+=("$x")
+
+	return
+}
+
+recurse() {
+	while [ "$1" ]; do
+		if [ -d "$1" ]; then
+			echo "$1" | grep -qE "${REGEX_SYNOLOGY}"
+			if [ $? -ne 0 ]; then
+				recurse "$1"/*
+			fi
+		else
+			convert "$1"
+		fi
+		shift
+	done
+}
+
+if termux-battery-low; then
+	echo "Battery is too low to encode files"
+	exit 1
+fi
+
+recurse *
+
+wait
+
+for mp4 in "${deleteList[@]}"
+do
+	rm "$mp4"
+done
+
+exit 0

@@ -1,0 +1,61 @@
+#!/usr/bin/env perl
+
+use strict;
+use warnings;
+
+use File::Copy::Recursive qw(dircopy);
+use File::Temp;
+use POSIX qw(EXIT_SUCCESS EXIT_FAILURE);
+
+sub signature {
+	# FIXME: We're not verifying who really signed it
+	my $exitCode = system('gpg --verify CHECKSUM.SHA512.asc');
+	if ($exitCode != 0) {
+		print(STDERR "Signature verification failed\n");
+		return EXIT_FAILURE;
+	}
+
+	return EXIT_SUCCESS;
+}
+
+sub checksum {
+	my $exitCode = system('sha512sum -c CHECKSUM.SHA512');
+	if ($exitCode != 0) {
+		print(STDERR "Hash verification failed\n");
+		return EXIT_FAILURE;
+	}
+
+	return EXIT_SUCCESS;
+}
+
+sub par2 {
+	#my $template = "/mnt/local/scratch/$ENV{USER}/verify-par2-parity_XXXXXXXXXX";
+	my $template = "/tmp/verify-par2-parity_XXXXXXXXXX";
+	my $tmpdir = File::Temp->newdir($template, CLEANUP => 1);
+
+	system("file $tmpdir");
+	$File::Copy::Recursive::CPRFComp = 1;
+	dircopy('.', "$tmpdir/") or die $!;
+	chdir("$tmpdir") or die $!;
+
+	my $exitCode = system('par2 v parity.par2');
+	chdir('/');
+
+	if ($exitCode != 0) {
+		print(STDERR "PAR2 verification failed\n");
+		return EXIT_FAILURE;
+	}
+
+	return EXIT_SUCCESS;
+}
+
+sub main {
+	return EXIT_FAILURE if (signature() == EXIT_FAILURE);
+	return EXIT_FAILURE if (checksum() == EXIT_FAILURE);
+	return EXIT_FAILURE if (par2() == EXIT_FAILURE);
+
+	system('beep');
+	return EXIT_SUCCESS;
+}
+
+exit(main());

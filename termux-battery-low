@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+
+# This script is designed for use on termux phones, so that you can refuse to perform an operation,
+# or bail out of a long-running operation, if the battery is too low, or if it is being charged
+# slowly.
+#
+# An exit code of 0 means the battery is too low
+# any non-zero exit code means that the battery is fine.
+# Possible defined exit codes:
+#
+# 1: Battery over threshold
+# 2: Battery is being charged
+# 3: Unknown state -- likely not Termux
+#
+
+set -euo pipefail
+
+PERCENT_THRESHOLD=27
+CURRENT_THRESHOLD=500
+
+EXIT_CODE_LOW=0
+EXIT_CODE_HIGH=1
+EXIT_CODE_CHARGING=2
+EXIT_CODE_UNKNOWN=3
+
+cmdOutput=$(mktemp)
+if ! termux-battery-status > "$cmdOutput"; then
+	exit "$EXIT_CODE_UNKNOWN"
+fi
+
+pct=$(cat "$cmdOutput" | jq .percentage)
+current=$(cat "$cmdOutput" | jq .current)
+state=$(cat "$cmdOutput" | jq -r .status)
+rm -f "$cmdOutput"
+
+# Some phones report the +ve/-ve the wrong way around, so normalize,
+# and treat the sign as if it comes from the status words of "FULL", "CHARGING" or "DISCHARGING" instead.
+current=${current#-}
+result=$(( current > CURRENT_THRESHOLD ))
+if [ "$state" != "DISCHARGING" ] && [ $result -eq 1 ]; then
+	exit "$EXIT_CODE_CHARGING"
+fi
+
+result=$(( pct > PERCENT_THRESHOLD ))
+if [ $result -eq 1 ]; then # Not charging quickly enough, but over threshold
+	exit "$EXIT_CODE_HIGH"
+fi
+
+# Battery is too low and we're not charging
+exit "$EXIT_CODE_LOW"
