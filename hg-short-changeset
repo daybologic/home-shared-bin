@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 
 use POSIX qw(EXIT_SUCCESS EXIT_FAILURE);
 use strict;
