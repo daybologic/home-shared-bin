@@ -1,0 +1,7 @@
+#!/bin/sh
+
+f=`mktemp`
+gpg --sign -a "$f"
+rm -f "$f" "$f.asc"
+
+exit 0
