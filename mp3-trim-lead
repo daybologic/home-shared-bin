@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+
+set -xeo pipefail
+
+secs=$1
+if [ -z "$secs" ]; then
+	# default value is length of leader used by Twitch
+	secs=14
+fi
+
+deleteList=()
+for input in *.mp3; do
+	NAME=$(basename "$input" .mp3);
+	if contains "$NAME" "trim"; then
+		continue;
+	fi
+
+	output="$NAME-trim.mp3";
+	if [ -f "$output" ]; then
+		file "$output"
+		continue;
+	fi
+
+	nice -n 15 sox "$input" "$output" trim $secs &
+	deleteList+=("$input")
+done
+wait
+
+for mp3 in "${deleteList[@]}"; do
+	rm -f "$mp3"
+done
+
+exit 0
