@@ -28,8 +28,6 @@ for mp3 in *.mp3; do
 
 	nice -n 19 sox "$mp3" "$OUTPUT" speed 1.11 &
 	deleteList+=("$mp3")
-
-	rm -f "$mp3"
 done
 
 wait
