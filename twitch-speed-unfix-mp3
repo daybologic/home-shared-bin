@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+
+set -xeuo pipefail
+
+if termux-battery-low; then
+	echo "Battery is too low to encode files"
+	exit 1
+fi
+
+for mp3 in *-tempo*.mp3; do
+	NAME=$(basename "$mp3" .mp3);
+
+	if contains "$NAME" "keep"; then
+		continue;
+	fi
+
+	if contains "$NAME" "untempo"; then
+		continue;
+	fi
+
+	OUTPUT="$NAME-untempo.mp3";
+
+	if [ -f "$OUTPUT" ]; then
+		rm -f "$mp3"
+		continue;
+	fi
+
+	sox --show-progress "$mp3" "$OUTPUT" speed 0.89
+
+	rm -f "$mp3"
+done
+
+exit 0

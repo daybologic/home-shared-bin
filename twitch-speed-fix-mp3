@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+
+set -xeuo pipefail
+
+if termux-battery-low; then
+	echo "Battery is too low to encode files"
+	exit 1
+fi
+
+deleteList=()
+for mp3 in *.mp3; do
+	NAME=$(basename "$mp3" .mp3);
+
+	if contains "$NAME" "keep"; then
+		continue;
+	fi
+
+	if contains "$NAME" "tempo"; then
+		continue;
+	fi
+
+	OUTPUT="$NAME-tempo.mp3";
+
+	if [ -f "$OUTPUT" ]; then
+		rm -f "$mp3"
+		continue;
+	fi
+
+	nice -n 19 sox "$mp3" "$OUTPUT" speed 1.11 &
+	deleteList+=("$mp3")
+
+	rm -f "$mp3"
+done
+
+wait
+
+for mp3 in "${deleteList[@]}"
+do
+	:
+	rm -f "$mp3"
+done
+
+exit 0
