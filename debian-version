@@ -23,6 +23,7 @@ my %rxMap = (
 	9 => 'Stretch',
 	10 => 'Buster',
 	11 => 'Bullseye',
+	12 => 'Bookworm',
 );
 
 sub ver {
