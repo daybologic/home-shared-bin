@@ -3,13 +3,20 @@
 set -x
 set -eo pipefail
 
-TARGET=/tmp/$USER/Trash
+TMP_SP=$(df -P /tmp | awk '/[0-9]%/{print $(NF-2)}')
+VAR_TMP_SP=$(df -P /var/tmp | awk '/[0-9]%/{print $(NF-2)}')
+
+if [[ "$TMP_SP" -ge "$VAR_TMP_SP" ]]; then
+	TARGET=/tmp/$USER/Trash
+else
+	TARGET=/var/tmp/$USER/Trash
+fi
+
 mkdir -p $TARGET
 
 if [ -d "/Volumes/trash/palmer" ]; then
 	TARGET="/Volumes/trash/palmer"
 elif [ "$XDG_DATA_HOME" = "" ]; then
-	TARGET="/tmp/`whoami`/Trash"
 	if [ ! -d "$TARGET" ]; then
 		TARGET="$HOME/.Trash"
 		mkdir -p "$TARGET"
