@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+set -e
+
+if termux-battery-low; then
+	echo "Battery is too low to encode files"
+	exit 1
+fi
+
+find . -type f -name "*.webm" -exec bash -c 'FILE="$1"; ffmpeg -i "${FILE}" -c:v libx264 -crf 20 -preset slow -c:a copy -vf scale=1920:1080 "${FILE%.webm}.mkv";' _ '{}' \;
+exit 0
