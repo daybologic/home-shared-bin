@@ -1,0 +1,7 @@
+#!/bin/sh
+
+for remote in $(git remote); do
+	git push $remote master;
+done
+
+exit 0
