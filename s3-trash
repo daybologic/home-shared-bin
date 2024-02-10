@@ -1,0 +1,58 @@
+#!/bin/bash
+
+set -eo pipefail
+set -x
+
+ERROR_USER=1
+ERROR_CONFIG=2
+
+S3_STORAGE_CLASS='DEEP_ARCHIVE'
+
+if [ -z "$S3_BUCKET_TRASH" ]; then
+	>&2 echo "ERROR: 🪣 You must define S3_BUCKET_TRASH in your shell configuration 🔧"
+	exit $ERROR_CONFIG
+fi
+
+if [ "$#" -eq 0 ]; then
+	>&2 echo "ERROR: 🤷🏿‍♀️ Nothing to delete has been specified"
+	exit $ERROR_USER
+elif [ "$#" -eq 1 ]; then
+	remoteName="$1"
+	remoteName="${remoteName}.tar"
+else
+	# nb. if you don't have this tool, you should be using https://github.com/daybologic/home-shared-bin/blob/master/uuid
+	# TODO: Optionally we could support other tools to generate a unique name, or perhaps a date-based name?
+	remoteName=$(uuid)
+	remoteName="${remoteName}.tar"
+fi
+
+set -u
+
+tar=$(mktemp)
+tar="${tar}.tar"
+
+function cleanup()
+{
+	rm -f "$tar"
+}
+
+trap cleanup EXIT
+tar -pcvf "$tar" "$@"
+
+#############################################################################
+# If you need to do anything like GPG encryption or transformation on the archive,
+# tagging etc, modify your tar here, in your Git clone.
+# We will keep clear of this area, to avoid merge conflict pain.
+function userFunction()
+{
+	return 0 # Your code here
+}
+
+userFunction
+#############################################################################
+
+REMOTE_DIR=$(date +%Y-%m)
+aws s3 cp --storage-class $S3_STORAGE_CLASS "$tar" "s3://$S3_BUCKET_TRASH/$REMOTE_DIR/$remoteName"
+
+rm -rfv "$@"
+exit 0
