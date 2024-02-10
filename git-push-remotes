@@ -1,7 +1,12 @@
 #!/bin/sh
 
+branch=master
+if [ "$#" -eq 1 ]; then
+	branch="$1"
+fi
+
 for remote in $(git remote); do
-	git push $remote master;
+	git push $remote "$branch";
 done
 
 exit 0
