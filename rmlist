@@ -1,0 +1,53 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use English qw(-no_match_vars);
+use IO::File;
+use POSIX qw(EXIT_FAILURE EXIT_SUCCESS);
+
+sub printFailList {
+	my ($failList, $errNoList) = @_;
+
+	for (my $i = 0; $i < scalar(@$failList); $i++) {
+		my $failPath = $failList->[$i];
+		my $errNo = $errNoList->[$i];
+		local $ERRNO = $errNo;
+		printf(STDERR "ERROR deleting \"%s\": %s\n", $failPath, $ERRNO);
+	}
+
+	return;
+}
+
+sub main {
+	my (@argv) = @_;
+
+	my @failList = ( );
+	my @errNoList = ( );
+
+	my $fail = sub {
+		my ($path, $errNo) = @_;
+		push(@failList, $path);
+		push(@errNoList, $errNo);
+		return 0;
+	};
+
+	my ($fileCount, $successCount) = (0, 0);
+	foreach my $arg (@argv) {
+		if (defined(my $f = $arg)) {
+			if (my $fh = IO::File->new($f, 'r')) {
+				while (my $path = <$fh>) {
+					chomp($path);
+					$fileCount++;
+					$successCount += (unlink($path) || $fail->($path, int($ERRNO)));
+				}
+			}
+		}
+	}
+
+	printFailList(\@failList, \@errNoList);
+
+	return ($fileCount == $successCount) ? EXIT_SUCCESS : EXIT_FAILURE;
+}
+
+exit(main(@ARGV)) unless (caller());
