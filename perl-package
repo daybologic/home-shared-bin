@@ -1,0 +1,3 @@
+#!/bin/sh
+
+head -n 500 "$1" | grep 'package ' | head -n 1 | cut -d' ' -f 2 | cut -d';' -f 1
