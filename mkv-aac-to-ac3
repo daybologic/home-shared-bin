@@ -1,1 +1,17 @@
-ffmpeg -i output.mkv -map 0:v -map 0:a:0 -c copy -c:a ac3 -b:a 640k out.mkv
+#!/usr/bin/env bash
+
+set -ex
+
+if termux-battery-low; then
+	echo "Battery is too low to encode files"
+	exit 1
+fi
+
+for x in *.mkv; do
+	output=$(mktemp)
+	output="${output}.mkv"
+
+	ffmpeg -i "$x" -map 0:v -map 0:a:0 -c copy -c:a ac3 -b:a 640k "$output"
+	rm -fv "$x"
+	mv -v "$output" "$x"
+done
