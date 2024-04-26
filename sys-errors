@@ -3,7 +3,6 @@
 package main;
 use Errno;
 use POSIX qw(EXIT_SUCCESS);
-#use strict;
 use warnings;
 
 sub main {

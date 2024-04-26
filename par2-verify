@@ -29,7 +29,6 @@ sub checksum {
 }
 
 sub par2 {
-	#my $template = "/mnt/local/scratch/$ENV{USER}/verify-par2-parity_XXXXXXXXXX";
 	my $template = "/tmp/verify-par2-parity_XXXXXXXXXX";
 	my $tmpdir = File::Temp->newdir($template, CLEANUP => 1);
 

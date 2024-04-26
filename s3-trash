@@ -1,7 +1,6 @@
 #!/bin/bash
 
-set -eo pipefail
-set -x
+set -xeo pipefail
 
 ERROR_USER=1
 ERROR_CONFIG=2

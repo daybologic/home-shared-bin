@@ -1,8 +1,6 @@
 #!/bin/sh
-
 # Applies a still image to an MP3 to make an MP4 suitable for Bitchute or YouTube
 
-set -e
-set -x
+set -ex
 
 ffmpeg -loop 1 -i image.jpg -i input.mp3 -c:v libx264 -tune stillimage -c:a aac -b:a 192k -pix_fmt yuv420p -shortest output.mp4

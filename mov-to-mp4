@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
 set -x
-#set -euo pipefail
 
 if termux-battery-low; then
 	echo "Battery is too low to encode files"
@@ -11,7 +10,6 @@ fi
 for mov in *.mov; do
 	baseName=$(basename "$mov" .mov)
 	out="$baseName.mp4"
-	#ffmpeg -i "$mov" -map 0 -c copy -c:a aac "$out"
 	ffmpeg -i "$mov" -vcodec h264 -acodec mp2 "$out"
 done
 

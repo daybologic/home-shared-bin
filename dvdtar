@@ -1,5 +1,5 @@
 #!/bin/sh
 
-set -e -x
+set -ex
 
 tar cvzf - home_overlord/ | split --bytes=4692MB - home_overlord.tgz.

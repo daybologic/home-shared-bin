@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
 
 set -x
-#set -euo pipefail
-
 
 REGEX_SYNOLOGY="@eaDir$"
 
@@ -58,8 +56,7 @@ recurse *
 
 wait
 
-for mp4 in "${deleteList[@]}"
-do
+for mp4 in "${deleteList[@]}"; do
 	rm "$mp4"
 done
 

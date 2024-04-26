@@ -7,21 +7,16 @@ use warnings;
 
 my $ctx = Digest::CRC->new(type=>"crc32");
 
-#$ctx->add($data);
-
 foreach my $filePath (@ARGV) {
 	my $fh = IO::File->new($filePath, 'r');
 	if (defined ($fh)) {
-		#print <$fh>;
 		$ctx->addfile($fh);
-		undef($fh);       # automatically closes the file
+		undef($fh); # automatically closes the file
 	} else {
 		printf(STDERR "Error opening %s: %s\n", $filePath, $!);
 	}
 
 	my $digest = $ctx->digest;
-	#$digest = $ctx->hexdigest;
-	#$digest = $ctx->b64digest;
 
 	printf("%s: %s\n", $filePath, $digest);
 }

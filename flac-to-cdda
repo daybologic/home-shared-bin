@@ -1,6 +1,5 @@
 #!/bin/sh
 
-for i in *.flac
-do
-    sox "$i" "$(basename -s .flac "$i").wav"
+for i in *.flac; do
+	sox "$i" "$(basename -s .flac "$i").wav"
 done

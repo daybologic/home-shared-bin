@@ -1,7 +1,4 @@
 #!/bin/sh
 
-#set -e
-
-#for r in */.hg; do cd `dirname $r`; pwd; hg pull ; hg grep $1 ; cd ..; done
 for r in */.hg; do cd `dirname $r`; pwd; hg grep -- "$1" ; cd ..; done
 exit 0;

@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
-set -x
-set -eo pipefail
+set -xeo pipefail
 
 TMP_SP=$(df -P /tmp | awk '/[0-9]%/{print $(NF-2)}')
 VAR_TMP_SP=$(df -P /var/tmp | awk '/[0-9]%/{print $(NF-2)}')
