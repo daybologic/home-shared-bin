@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+
+set -eu
+mac="$1"
+
+
+prefix="${mac:0:6}"
+echo "$prefix"
+
+exit 0
