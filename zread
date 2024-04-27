@@ -5,13 +5,18 @@ set -ex
 umask 077
 file="$1"
 
+editorFlags=""
 if [ -z "$EDITOR" ]; then
-	EDITOR=vi
+	EDITOR="vi"
+fi
+
+if [ "$EDITOR" = "vi" ] || [ $EDITOR = "vim" ]; then
+	editorFlags="-R"
 fi
 
 tmpfile=`mktemp zread.XXXXXX`
 zcat "$file" > "$tmpfile"
-$EDITOR -R "$tmpfile"
+"$EDITOR" "$editorFlags" "$tmpfile"
 rm -f "$tmpfile"
 
 exit 0;
