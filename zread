@@ -14,7 +14,7 @@ if [ "$EDITOR" = "vi" ] || [ $EDITOR = "vim" ]; then
 	editorFlags="-R"
 fi
 
-tmpfile=`mktemp zread.XXXXXX`
+tmpfile=$(mktemp zread.XXXXXX --tmpdir)
 
 function cleanup()
 {

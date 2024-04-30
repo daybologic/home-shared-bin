@@ -5,7 +5,7 @@ set -e
 umask 077
 file="$1"
 
-tmpfile=`mktemp zhead.XXXXXX`
+tmpfile=`mktemp zhead.XXXXXX --tmpdir`
 zcat "$file" > "$tmpfile"
 head "$tmpfile"
 rm -f "$tmpfile"
