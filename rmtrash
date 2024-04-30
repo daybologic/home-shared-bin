@@ -13,8 +13,8 @@ fi
 
 mkdir -p $TARGET
 
-if [ -d "/Volumes/trash/palmer" ]; then
-	TARGET="/Volumes/trash/palmer"
+if [ -d "/Volumes/trash/$USER" ]; then
+	TARGET="/Volumes/trash/$USER"
 elif [ "$XDG_DATA_HOME" = "" ]; then
 	if [ ! -d "$TARGET" ]; then
 		TARGET="$HOME/.Trash"
