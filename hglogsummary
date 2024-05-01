@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/env perl
 #
 # This script will accept an hg log as input on stdin, and produce an output
 # which can be copied and pasted into the debian/changelog, as a series of
