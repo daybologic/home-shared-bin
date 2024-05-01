@@ -2,4 +2,4 @@
 
 set -ex
 
-tar cvzf - home_overlord/ | split --bytes=4692MB - home_overlord.tgz.
+tar cvzf - $1/ | split --bytes=4692MB - $1.tgz.
