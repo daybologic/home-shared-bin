@@ -1,30 +1,16 @@
-#!/usr/bin/env perl
+#!/usr/bin/env bash
 
-package main;
-use strict;
-use warnings;
-use JSON;
-use LWP::UserAgent qw(decode_json);
-use MIME::Base64;
-use POSIX qw(EXIT_FAILURE EXIT_SUCCESS);
+set -eo pipefail
 
-sub main {
-	my $ua = LWP::UserAgent->new;
-	$ua->timeout(10);
-	$ua->env_proxy;
+if [ -z "$1" ]; then
+	>&2 echo "ERROR: Usage: $0 <uuid>"
+	exit 1
+fi
 
-	my $uri = "http://perlapi.daybologic.co.uk/v2/uuid/version/$ARGV[0]";
-	my $response = $ua->get($uri);
+set -u
 
-	if ($response->is_success) {
-		my $decoded = decode_json(decode_base64($response->decoded_content));
-		printf("%s\n", $decoded->{version});
-	} else {
-		printf(STDERR "%s\n", $response->status_line);
-		return EXIT_FAILURE;
-	}
+uuid="$1"
+version="${uuid:14:1}"
+echo $version
 
-	return EXIT_SUCCESS;
-}
-
-exit(main());
+exit 0
