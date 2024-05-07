@@ -15,17 +15,20 @@ sub main {
 	$ua->env_proxy;
 
 	my %opts;
-	if (!getopts('v:', \%opts)) {
+	if (!getopts('v:n:', \%opts)) {
 		return EXIT_FAILURE;
 	}
 
-	my $uri = 'http://perlapi.daybologic.co.uk/v2/uuid/generate?';
-	$uri .= join('=', each(%opts));
+	my @params;
+	map { push(@params, join('=', $_, $opts{$_})) } keys(%opts);
+	my $uri = 'http://perlapi.daybologic.co.uk/v2/uuid/generate?' . join('&', @params);
 
 	my $response = $ua->get($uri);
 	if ($response->is_success) {
 		my $decoded = decode_json(decode_base64($response->decoded_content));
-		printf("%s\n", $decoded->{results}->[0]->{value});
+		foreach my $result (@{ $decoded->{results} }) {
+			printf("%s\n", $result->{value});
+		}
 	} else {
 		printf(STDERR "%s\n", $response->status_line);
 		return EXIT_FAILURE;
