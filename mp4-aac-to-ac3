@@ -16,6 +16,6 @@ for x in *.mp4; do
 		continue;
 	fi
 
-	ffmpeg -i "$x" -map 0 -c copy -c:a ac3 "$MKV"
+	ffmpeg -i "$x" -map 0 -c:a ac3 "$MKV"
 	rm -f "$x"
 done
