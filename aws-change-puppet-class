@@ -14,7 +14,7 @@ fi
 
 oldClassJson=$(mktemp)
 aws $PROFILE ec2 describe-tags \
-	--filters "Name=tag:puppetClass,Values=*,Name=resource-id,Values=$instanceId" \
+	--filters "Name=resource-id,Values=${instanceId}" \
 	--output json > "$oldClassJson"
 
 oldPuppetClass=$(jq -r '.Tags[] | select (.Key == "puppetClass") | .Value' "$oldClassJson")
