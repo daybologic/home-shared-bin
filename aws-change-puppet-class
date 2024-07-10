@@ -1,0 +1,33 @@
+#!/usr/bin/bash
+
+if [ ! -z "$PROFILE" ]; then
+	PROFILE="--profile $PROFILE"
+fi
+
+if [ -z "$1" ] || [ -z "$2" ]; then
+	echo "ERROR: syntax: $0 <i-instanceId> <new class>"
+	exit 1
+else
+	instanceId=$1
+	newPuppetClass=$2
+fi
+
+oldClassJson=$(mktemp)
+aws $PROFILE ec2 describe-tags \
+	--filters "Name=resource-id,Values=${instanceId}" \
+	--output json > "$oldClassJson"
+
+oldPuppetClass=$(jq -r '.Tags[] | select (.Key == "puppetClass") | .Value' "$oldClassJson")
+rm -f "$oldClassJson"
+
+if [ "$oldPuppetClass" == "$newPuppetClass" ]; then
+	echo "puppetClass for $instanceId is already $newPuppetClass"
+	exit 0
+fi
+
+aws $PROFILE ec2 create-tags \
+    --resources $instanceId \
+    --tags Key=puppetClass,Value=$newPuppetClass
+
+echo "$instanceId old puppetClass was $oldPuppetClass and has been changed to $newPuppetClass"
+exit 0
