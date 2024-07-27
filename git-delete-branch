@@ -16,6 +16,5 @@ for remote in $(git remote); do
 		echo "Not pushing to $remote"
 	else
 		git push "$remote" --delete "$B"
-		git fetch "$remote" --prune
 	fi
 done
