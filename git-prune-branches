@@ -1,0 +1,11 @@
+#/bin/sh
+
+set -ux
+
+for remote in $(git remote); do
+	if [ "$remote" == "archive" ]; then
+		echo "Skipping remote $remote"
+	else
+		git fetch "$remote" --prune
+	fi
+done
