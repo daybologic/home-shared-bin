@@ -12,7 +12,10 @@ B="$1"
 git branch -D "$B"
 
 for remote in $(git remote); do
-	git push "$remote" --delete "$B"
+	if [ "$remote" == "archive" ]; then
+		echo "Not pushing to $remote"
+	else
+		git push "$remote" --delete "$B"
+		git fetch "$remote" --prune
+	fi
 done
-
-git fetch --prune
