@@ -32,10 +32,10 @@
 H=chleb-api.daybologic.co.uk
 
 if [ -x /usr/bin/curl ]; then
-	if [ -x /usr/bin/jq ]; then
-		curl -s "https://$H/votd" | jq -r '.data[0].attributes | .book + " " + (.chapter|tostring) + ":" + (.ordinal|tostring) + " " + .text'
+	if [ -x /usr/bin/jq ] || [ -x /usr/local/bin/jq ]; then
+		curl -s "https://$H/1/votd" | jq -r '.data[0].attributes | .book + " " + (.chapter|tostring) + ":" + (.ordinal|tostring) + " " + .text'
 	else
-		curl -s "https://$H/votd" | tr -d '\n' | grep -o '"text":[^"]*"[^"]*"'
+		curl -s "https://$H/1/votd" | tr -d '\n' | grep -o '"text":[^"]*"[^"]*"'
 	fi
 
 fi
