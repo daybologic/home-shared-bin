@@ -6,6 +6,12 @@ if [ "$#" -eq 1 ]; then
 fi
 
 for remote in $(git remote); do
+	if [ "$remote" = "vendor" ]; then
+		continue
+	fi
+	if [ "$remote" = "shared" ]; then
+		continue
+	fi
 	git push $remote "$branch";
 done
 
