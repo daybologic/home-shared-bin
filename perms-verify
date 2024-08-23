@@ -36,7 +36,6 @@ sub main {
 			$target{mode} = oct($arg);
 		} else {
 			my $stat = stat($arg);
-			print STDERR Dumper \$stat;
 
 			if (!compareUser($stat->uid, $target{user}) || !compareGroup($stat->gid, $target{group})) {
 				if (!runChown($arg, \%target)) {
@@ -68,8 +67,6 @@ sub compareGroup {
 sub compareMode {
 	my ($real, $target) = @_;
 	my $mode = $real & 07777;
-
-	printf(STDERR "real %o, target %o\n", $mode, $target);
 	return ($mode == $target);
 }
 
