@@ -33,9 +33,18 @@ H=chleb-api.daybologic.co.uk
 
 if [ -x /usr/bin/curl ]; then
 	if [ -x /usr/bin/jq ] || [ -x /usr/local/bin/jq ]; then
-		curl -s "https://$H/1/votd" | jq -r '.data[0].attributes | .book + " " + (.chapter|tostring) + ":" + (.ordinal|tostring) + " " + .text'
+		json=$(curl -s "https://${H}/2/votd")
+		i=0
+		while true; do
+			line=$(echo "$json" | jq -r '.data['$i'].attributes | .book + " " + (.chapter|tostring) + ":" + (.ordinal|tostring) + " " + .text');
+			if [ "${line}" = " null:null " ]; then
+				break;
+			fi
+			echo "$line"
+			i=$i+1
+		done
 	else
-		curl -s "https://$H/1/votd" | tr -d '\n' | grep -o '"text":[^"]*"[^"]*"'
+		curl -s "https://${H}/1/votd" | tr -d '\n' | grep -o '"text":[^"]*"[^"]*"'
 	fi
 
 fi
