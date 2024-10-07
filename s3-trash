@@ -5,7 +5,7 @@ set -xeo pipefail
 ERROR_USER=1
 ERROR_CONFIG=2
 
-S3_STORAGE_CLASS='DEEP_ARCHIVE'
+S3_STORAGE_CLASS='GLACIER_IR'
 
 if [ -z "$S3_BUCKET_TRASH" ]; then
 	>&2 echo "ERROR: 🪣 You must define S3_BUCKET_TRASH in your shell configuration 🔧"
