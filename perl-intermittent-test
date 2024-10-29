@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+U=$(uuid)
+umask 027
+
+while env TEST_VERBOSE=1 perl -Ilib t/$1.t >/tmp/$U 2>&1; do :; done
