@@ -1,11 +1,63 @@
 #!/usr/bin/env bash
 
-set -e
+set -x
+
+REGEX_SYNOLOGY="@eaDir$"
+
+deleteList=()
+
+convert() {
+	x="$1"
+	echo "$x" | grep -qE "opus$"
+	if [ $? -ne 0 ]; then
+		return
+	fi
+
+	NAME=$(basename "$x" .opus);
+
+	MP3="$NAME.mp3";
+
+	if [ -f "$MP3" ]; then
+		rm -f "$x"
+		return;
+	fi
+
+	if contains "$NAME" "keep"; then
+		return;
+	fi
+
+	echo "$MP3"
+	ffmpeg -hide_banner -loglevel panic -i "$x" -vn -c:a libmp3lame -y "$MP3" &
+	deleteList+=("$x")
+
+	return
+}
+
+recurse() {
+	while [ "$1" ]; do
+		if [ -d "$1" ]; then
+			echo "$1" | grep -qE "${REGEX_SYNOLOGY}"
+			if [ $? -ne 0 ]; then
+				recurse "$1"/*
+			fi
+		else
+			convert "$1"
+		fi
+		shift
+	done
+}
 
 if termux-battery-low; then
 	echo "Battery is too low to encode files"
 	exit 1
 fi
 
-find . -type f -name "*.opus" -exec bash -c 'FILE="$1"; ffmpeg -i "${FILE}" -vn -c:a libmp3lame -y "${FILE%.opus}.mp3";' _ '{}' \;
+recurse *
+
+wait
+
+for opus in "${deleteList[@]}"; do
+	rm -f "$opus"
+done
+
 exit 0
