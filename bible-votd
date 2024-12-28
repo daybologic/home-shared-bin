@@ -35,7 +35,7 @@ H=chleb-api.daybologic.co.uk
 
 if [ -x /usr/bin/curl ]; then
 	if [ -x /usr/bin/jq ] || [ -x /usr/local/bin/jq ]; then
-		json=$(curl -s "https://${H}/2/votd")
+		json=$(curl -s --header 'Accept: application/json' "https://${H}/2/votd")
 		i=0
 		while true; do
 			line=$(echo "$json" | jq -r '.data['$i'].attributes | .book + " " + (.chapter|tostring) + ":" + (.ordinal|tostring) + " " + .text');
