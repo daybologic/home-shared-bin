@@ -18,7 +18,7 @@ convert() {
 	MP3="$NAME.mp3";
 
 	if [ -f "$MP3" ]; then
-		rm "$x"
+		rm -fv "$x"
 		return;
 	fi
 
@@ -57,7 +57,7 @@ recurse *
 wait
 
 for mp4 in "${deleteList[@]}"; do
-	rm "$mp4"
+	rm -fv "$mp4"
 done
 
 exit 0
