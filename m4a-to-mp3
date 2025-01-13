@@ -1,11 +1,63 @@
 #!/usr/bin/env bash
 
-set -xeuo pipefail
+set -x
+
+REGEX_SYNOLOGY="@eaDir$"
+
+deleteList=()
+
+convert() {
+	x="$1"
+	echo "$x" | grep -qE "m4a$"
+	if [ $? -ne 0 ]; then
+		return
+	fi
+
+	NAME=$(basename "$x" .m4a);
+
+	MP3="$NAME.mp3";
+
+	if [ -f "$MP3" ]; then
+		rm -f "$x"
+		return;
+	fi
+
+	if contains "$NAME" "keep"; then
+		return;
+	fi
+
+	echo "$MP3"
+	ffmpeg -hide_banner -loglevel panic -i "$x" -vn -c:v copy -c:a libmp3lame -q:a 6 -y "$MP3" &
+	deleteList+=("$x")
+
+	return
+}
+
+recurse() {
+	while [ "$1" ]; do
+		if [ -d "$1" ]; then
+			echo "$1" | grep -qE "${REGEX_SYNOLOGY}"
+			if [ $? -ne 0 ]; then
+				recurse "$1"/*
+			fi
+		else
+			convert "$1"
+		fi
+		shift
+	done
+}
 
 if termux-battery-low; then
 	echo "Battery is too low to encode files"
 	exit 1
 fi
 
-find . -type f -name "*.m4a" -exec bash -c 'FILE="$1"; ffmpeg -hide_banner -loglevel panic -i "${FILE}" -c:v copy -c:a libmp3lame -q:a 6 "${FILE%.m4a}.mp3";' _ '{}' \;
+recurse *
+
+wait
+
+for m4a in "${deleteList[@]}"; do
+	rm -f "$m4a"
+done
+
 exit 0
