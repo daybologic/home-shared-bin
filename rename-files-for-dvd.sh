@@ -10,19 +10,27 @@ MAX_FILENAME_LENGTH=64
 sanitize_filename() {
     local original_name="$1"
     
-    # Convert to lowercase
-    local sanitized_name=$(echo "$original_name" | tr '[:upper:]' '[:lower:]')
+    # Extract the base name and extension
+    local base_name="${original_name%.*}" # Filename without extension
+    local extension="${original_name##*.}" # Extension (including hidden files)
     
-    # Replace invalid characters with underscores
-    sanitized_name=$(echo "$sanitized_name" | sed 's/[^a-z0-9.-]//g')
+    # If there's no extension, treat the whole name as base_name
+    if [ "$base_name" = "$original_name" ]; then
+        base_name="$original_name"
+        extension=""
+    else
+        extension=".$extension"
+    fi
+
+    # Convert base name to lowercase and replace invalid characters with underscores
+    base_name=$(echo "$base_name" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9.-]//g')
     
-    # Truncate to Joliet's 64-character limit
-    sanitized_name="${sanitized_name:0:$MAX_FILENAME_LENGTH}"
+    # Truncate the base name to fit within the total length limit (64 - length of extension)
+    local truncated_length=$((MAX_FILENAME_LENGTH - ${#extension}))
+    base_name="${base_name:0:$truncated_length}"
     
-    # If the sanitized name is empty, assign a default name
-    [ -z "$sanitized_name" ] && sanitized_name="unnamed_file"
-    
-    echo "$sanitized_name"
+    # Combine the sanitized base name and the extension
+    echo "$base_name$extension"
 }
 
 # Process each file in the target directory
@@ -43,7 +51,7 @@ for file in *; do
         counter=1
         base_name="${sanitized_name%.*}"
         extension="${sanitized_name##*.}"
-        [ "$base_name" = "$sanitized_name" ] && extension="" # Handle files with no extension
+        [ "$base_name" = "$sanitized_name" ] && extension="" # Handle files without extension
         extension=".$extension"
 
         while [ -e "$sanitized_name" ]; do
