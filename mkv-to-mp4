@@ -10,7 +10,7 @@ fi
 for mkv in *.mkv; do
 	baseName=$(basename "$mkv" .mkv)
 	out="$baseName.mp4"
-	ffmpeg -i "$mkv" -map 0 -c copy -c:a aac "$out"
+	ffmpeg -i "$mkv" -map 0 -c:a aac "$out"
 	rm -f "$mkv"
 done
 
