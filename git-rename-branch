@@ -1,0 +1,21 @@
+#!/bin/bash
+
+read -r -p "old branch name: " old_name
+read -r -p "new branch name: " new_name
+read -r -p "remote (origin recommended): " remote
+
+# Rename the local branch to the new name
+git branch -m $old_name $new_name
+
+# Or shorter way to delete remote branch [:]
+git push $remote :$old_name
+
+# Prevent git from using the old name when pushing in the next step.
+# Otherwise, git will use the old upstream name instead of $new_name.
+git branch --unset-upstream $new_name
+
+# Push the new branch to remote
+git push $remote $new_name
+
+# Reset the upstream branch for the new_name local branch
+git push $remote -u $new_name
