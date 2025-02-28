@@ -4,5 +4,5 @@ U=$(uuid)
 umask 027
 
 output="/tmp/$U"
-while env TEST_VERBOSE=1 perl -Ilib t/$1.t ">$output" 2>&1; do :; done
+while env TEST_VERBOSE=1 perl -Ilib t/$1.t >"$output" 2>&1; do :; done
 cat "$output"
