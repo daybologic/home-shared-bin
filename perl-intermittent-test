@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# usage:
+# perl-intermittent-test YourTestSuite testMethod
+
 U=$(uuid)
 umask 027
 
