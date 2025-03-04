@@ -47,6 +47,6 @@ if [ -x /usr/bin/curl ]; then
 			i=$i+1
 		done
 	else
-		curl --header 'Accept: text/plain' -s "https://$H/2/votd?when=$now"
+		curl --header 'Accept: text/html' -s "https://$H/2/votd?when=$now"
 	fi
 fi
