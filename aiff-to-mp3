@@ -1,0 +1,10 @@
+#!/bin/sh
+
+for file in *.aiff ; do
+	MP3NAME=`echo $file | sed 's/aiff$/mp3/'`
+	if [ -f "$MP3NAME" ]; then
+		echo "$MP3NAME already exists"
+		continue;
+	fi
+	ffmpeg -i "$file" -f mp3 -ab 393216 "$MP3NAME";
+done
