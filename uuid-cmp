@@ -1,0 +1,36 @@
+#!/usr/bin/env perl
+
+package main;
+use strict;
+use warnings;
+use Data::Dumper;
+use JSON;
+use LWP::UserAgent qw(decode_json);
+use MIME::Base64;
+use POSIX qw(EXIT_FAILURE EXIT_SUCCESS);
+
+sub main {
+	my $ua = LWP::UserAgent->new;
+	$ua->timeout(10);
+	$ua->env_proxy;
+
+	my $uri = 'http://perlapi.daybologic.co.uk/v2/uuid/compare';
+	my $inputData = { left => $ARGV[0], right => $ARGV[1] };
+
+	my $req = HTTP::Request->new(POST => $uri);
+	$req->header('content-type' => 'application/json');
+	$req->content(encode_json($inputData));
+
+	my $response = $ua->request($req);
+	if ($response->is_success) {
+		my $decoded = decode_json(decode_base64($response->decoded_content));
+		return EXIT_FAILURE if ($decoded->{compare});
+	} else {
+		printf(STDERR "%s\n", $response->status_line);
+		return EXIT_FAILURE;
+	}
+
+	return EXIT_SUCCESS;
+}
+
+exit(main());
