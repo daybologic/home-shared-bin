@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+
+set -xeuo pipefail
+
+if termux-battery-low; then
+	echo "Battery is too low to concat files"
+	exit 1
+fi
+
+deleteList=()
+name=''
+
+tmpSilenceDir=$(mktemp concat-mp3.XXXXXX --directory --tmpdir)
+tmpWavSilenceFile="$tmpSilenceDir/silence.wav"
+tmpMp3SilenceFile="$tmpSilenceDir/silence.mp3"
+
+function cleanup()
+{
+	rm -f "$tmpWavSilenceFile" "$tmpMp3SilenceFile"
+	if [ -d "$tmpSilenceDir" ]; then
+		rmdir "$tmpSilenceDir"
+	fi
+}
+trap cleanup EXIT
+
+for x in *.mp3; do
+	if [ -z "$name" ]; then
+		name=$(basename "$x" .mp3)
+		if contains "$name" "MP3WRAP"; then
+			exit 2
+		fi
+
+		# make a silent file
+		sox -n -r 44100 -c 2 "$tmpWavSilenceFile" trim 0.0 0.0
+		lame "$tmpWavSilenceFile" "$tmpMp3SilenceFile"
+
+		nice -n 15 mp3wrap "$name" "$x" "$tmpMp3SilenceFile"
+	else
+		nice -n 15 mp3wrap -a "${name}_MP3WRAP.mp3" "$x"
+		mv -v "temp_MP3WRAP.mp3" "${name}_MP3WRAP.mp3"
+	fi
+
+	deleteList+=("$x")
+done
+
+cleanup
+
+for mp3 in "${deleteList[@]}"; do
+	s3-trash "$mp3"
+done
+
+exit 0
