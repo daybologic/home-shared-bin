@@ -1,0 +1,99 @@
+#!/usr/bin/perl
+
+package Processor;
+use strict;
+use warnings;
+
+use Data::Dumper;
+use File::Find;
+use POSIX qw(EXIT_SUCCESS);
+
+my $RX1 = qr/^(\w+) \((live|rerun)\) (20\d{2}-\d{2}-\d{2}) (\d{2}_\d{2})\s\[(\d+)\].*(mp3)$/;
+my $RX2 = qr/^(\w+) \((live|rerun)\) (20\d{2}-\d{2}-\d{2}) (\d{2}_\d{2})-(\d+).*(mp3)$/;
+
+sub new {
+	my ($class) = @_;
+	return bless({
+		__fileList => [ ],
+	}, $class);
+}
+
+sub run {
+	my ($self, $dirPath) = @_;
+
+	my %bySerial = ( );
+	my $fileList = $self->__find($dirPath);
+	foreach my $fileEnt (sort { $a->{fileName} cmp $b->{fileName} } @$fileList) {
+		my $serial = $fileEnt->{serial};
+		$bySerial{$serial} = [ ] unless ($bySerial{$serial});
+		push(@{ $bySerial{$serial} }, $fileEnt);
+	}
+
+	foreach my $serial (sort { $b <=> $a } keys(%bySerial)) {
+		my @command = ('concat-mp3');
+
+		my $fileEnts = $bySerial{$serial};
+		if (scalar(@$fileEnts) > 1) {
+			foreach my $fileEnt (@$fileEnts) {
+				push(@command, $fileEnt->{fileName});
+			}
+
+			__system(\@command)
+		} else {
+			warn("No need to process $serial because there is only one file");
+		}
+	}
+
+	return EXIT_SUCCESS;
+}
+
+sub __system {
+	my ($args) = @_;
+
+	return EXIT_SUCCESS if (system(@$args));
+
+	if ($? == -1) {
+		print(STDERR "failed to execute: $!\n");
+	} elsif ($? & 127) {
+		printf(STDERR "child died with signal %d, %s coredump\n",
+		    ($? & 127), ($? & 128) ? 'with' : 'without');
+	} else {
+		printf(STDERR "child exited with value %d\n", $? >> 8);
+	}
+
+	return EXIT_SUCCESS;
+}
+
+sub __find {
+	my ($self, $dirPath) = @_;
+
+	find(
+		sub {
+			return unless -f; # only files
+			return unless ($_ =~ m/$RX1/ || $_ =~ m/$RX2/);
+
+			push(@{ $self->{__fileList} }, {
+				filePath => $File::Find::name,
+				fileName => $_,
+				streamer => $1,
+				phase => $2,
+				date => $3,
+				time => $4,
+				serial => $5,
+			});
+		},
+		$dirPath,
+	);
+
+	return $self->{__fileList};
+}
+
+package main;
+use strict;
+use warnings;
+
+sub main {
+	return Processor->new()->run('.');
+}
+
+exit(main()) unless (caller());
