@@ -23,7 +23,10 @@ function cleanup()
 }
 trap cleanup EXIT
 
-for x in *.mp3; do
+files=("$@")
+[[ $# -eq 0 ]] && files=( *.mp3 )
+
+for x in "${files[@]}"; do
 	if [ -z "$name" ]; then
 		name=$(basename "$x" .mp3)
 		if contains "$name" "MP3WRAP"; then
