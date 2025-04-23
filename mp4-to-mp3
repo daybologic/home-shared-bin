@@ -18,8 +18,7 @@ convert() {
 	MP3="$NAME.mp3";
 
 	if [ -f "$MP3" ]; then
-		rm -fv "$x"
-		return;
+		rm -fv "$MP3"
 	fi
 
 	if contains "$NAME" "keep"; then
