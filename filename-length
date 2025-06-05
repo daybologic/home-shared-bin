@@ -1,0 +1,49 @@
+#!/bin/sh
+
+# POSIX-compliant script to print lengths of filenames or show longest filename
+
+# Initialize variables
+SHOW_MAX=0
+
+# Parse arguments
+while getopts "d:s" opt; do
+  case "$opt" in
+    d) DIR=$OPTARG ;;
+    s) SHOW_MAX=1 ;;
+    *) echo "Usage: $0 -d <directory> [-s]" >&2; exit 1 ;;
+  esac
+done
+
+# Check if directory was provided and valid
+if [ -z "$DIR" ] || [ ! -d "$DIR" ]; then
+  echo "Error: valid directory must be provided with -d option" >&2
+  exit 1
+fi
+
+# Initialize max tracking variables
+maxlen=0
+maxfile=""
+
+# Use a temp file to store the list, or redirect stdin directly
+list=`mktemp`
+find "$DIR" -maxdepth 1 \( -type f -o -type l \) > "$list"
+
+while IFS= read -r filepath; do
+  filename=$(basename -- "$filepath")
+  len=$(printf "%s" "$filename" | wc -c)
+  len=$(echo "$len" | tr -d ' ')
+
+  if [ "$len" -gt "$maxlen" ]; then
+    maxlen=$len
+    maxfile=$filename
+  fi
+  echo "$len $filename"
+done < "$list"
+
+rm -f "$list"
+
+# If -s was given, output the longest filename and its length
+if [ "$SHOW_MAX" -eq 1 ]; then
+  echo "==="
+  echo "$maxlen $maxfile"
+fi
