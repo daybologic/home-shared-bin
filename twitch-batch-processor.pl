@@ -68,6 +68,7 @@ sub __makeSpeedProblem {
 		'A_D_A_M_S_K_I',
 		'bootey',
 		'CarteBlanche88',
+		'c6_dj',
 		'clairey6',
 		'DJ_Shorty_K',
 		'ForcyteOfficial',
