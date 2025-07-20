@@ -1,0 +1,16 @@
+#!/bin/sh
+
+set -e
+
+domain=
+if [ -z "$1" ]; then
+	>&2 echo "ERROR: specify the domain ⛔️"
+	exit 1
+else
+	domain="$1"
+fi
+
+set -u
+
+echo | openssl s_client -servername $domain -connect $domain:443 2>/dev/null | openssl x509 -noout -issuer -dates
+exit 0
