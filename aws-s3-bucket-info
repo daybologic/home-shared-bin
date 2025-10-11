@@ -1,0 +1,20 @@
+#!/bin/sh
+
+set -eu
+
+bucket=
+bucket=
+env=
+path=
+
+# Where is the bucket?
+aws --profile $env s3api get-bucket-location --bucket $bucket
+
+# Is it considered public by policy?
+aws --profile $env s3api get-bucket-policy-status --bucket $bucket
+
+# Are public blocks on?
+aws --profile $env s3api get-public-access-block --bucket $bucket
+
+# Does the object exist?
+aws --profile $env s3api head-object --bucket $bucket --key "$path"
