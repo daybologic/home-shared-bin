@@ -6,6 +6,29 @@
 U=$(uuid)
 umask 027
 
+function __setRandomUnique() {
+	local len
+	len=$(($RANDOM % 10))
+	if [[ $len == 0 ]]; then
+		export TEST_UNIQUE=0
+		return
+	fi
+	local str
+	while [[ $len > 0 ]]; do
+		if [[ $str == '' ]]; then
+			str=$((($RANDOM % 9) + 1))
+		else
+			str=$str$(($RANDOM % 10))
+		fi
+		len=$(($len - 1))
+	done
+	export TEST_UNIQUE=$str
+	return
+}
+
 output="/tmp/$U"
-while env TEST_VERBOSE=1 perl -Ilib t/$1.t $2 >"$output" 2>&1; do :; done
+while env TEST_VERBOSE=1 perl -Ilib t/$1.t $2 >"$output" 2>&1; do
+	__setRandomUnique
+done
+
 cat "$output"
