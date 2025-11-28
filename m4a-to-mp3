@@ -3,6 +3,7 @@
 set -x
 
 REGEX_SYNOLOGY="@eaDir$"
+QUALITY_LEVEL=2
 
 deleteList=()
 
@@ -27,7 +28,7 @@ convert() {
 	fi
 
 	echo "$MP3"
-	ffmpeg -hide_banner -loglevel panic -i "$x" -vn -c:v copy -c:a libmp3lame -q:a 6 -y "$MP3" &
+	ffmpeg -hide_banner -loglevel panic -i "$x" -vn -c:v copy -c:a libmp3lame -q:a $QUALITY_LEVEL -compression_level $QUALITY_LEVEL -y "$MP3" &
 	deleteList+=("$x")
 
 	return
