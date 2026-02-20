@@ -5,6 +5,7 @@ use warnings;
 
 use File::Copy::Recursive qw(dircopy);
 use File::Temp;
+use Getopt::Std;
 use POSIX qw(EXIT_SUCCESS EXIT_FAILURE);
 
 sub signature {
@@ -28,14 +29,24 @@ sub checksum {
 	return EXIT_SUCCESS;
 }
 
-sub par2 {
-	my $template = "/tmp/verify-par2-parity_XXXXXXXXXX";
+sub indirect {
+	my $template = "/var/tmp/$ENV{USER}/verify-par2-parity_XXXXXXXXXX";
 	my $tmpdir = File::Temp->newdir($template, CLEANUP => 1);
 
 	system("file $tmpdir");
 	$File::Copy::Recursive::CPRFComp = 1;
 	dircopy('.', "$tmpdir/") or die $!;
 	chdir("$tmpdir") or die $!;
+	return $tmpdir;
+}
+
+sub par2 {
+	my ($args) = @_;
+	my ($indirection) = @{$args}{qw(indirection)};
+
+	# hold temporary directory reference open until we're finished, it will self-destruct
+	my $tmpdir;
+	$tmpdir = indirect() if ($indirection);
 
 	my $exitCode = system('par2 v parity.par2');
 	chdir('/');
@@ -49,9 +60,14 @@ sub par2 {
 }
 
 sub main {
+	my %opts;
+	if (!getopts('t', \%opts)) {
+		return EXIT_FAILURE;
+	}
+
 	return EXIT_FAILURE if (signature() == EXIT_FAILURE);
 	return EXIT_FAILURE if (checksum() == EXIT_FAILURE);
-	return EXIT_FAILURE if (par2() == EXIT_FAILURE);
+	return EXIT_FAILURE if (par2({ indirection => $opts{t} }) == EXIT_FAILURE);
 
 	system('beep');
 	return EXIT_SUCCESS;
