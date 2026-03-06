@@ -35,6 +35,11 @@ while read branch; do
 		continue
 	fi
 
+	if [[ "$branch" == rc/* || "$branch" == rel/* ]]; then
+		echo "Not deleting '$branch' because it is a release branch"
+		continue
+	fi
+
 	if [[ "$interactive" -eq 1 ]]; then
 		read -r -p "Delete '$branch'? [y/N] " reply </dev/tty
 		if [[ ! "$reply" =~ ^[Yy]$ ]]; then
