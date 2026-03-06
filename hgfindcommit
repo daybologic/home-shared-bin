@@ -10,14 +10,12 @@ while [ $# -gt 0 ]; do
 done
 
 for r in */.hg; do
-	cd "$(dirname "$r")"
-	pwd
-	if hg log --debug -r "$1" 2>/dev/null; then
+	repo="$(dirname "$r")"
+	echo "$(pwd)/$repo"
+	if hg -R "$repo" log --debug -r "$1" 2>/dev/null; then
 		if [ "$all" -eq 0 ]; then
-			cd ..
 			exit 0
 		fi
 	fi
-	cd ..
 done
 exit 0
