@@ -11,6 +11,7 @@ currentBranch=$(git branch --show-current 2>/dev/null)
 
 target='master'
 interactive=0
+verbose=0
 while [ $# -gt 0 ]; do
 	case "$1" in
 		-t|--target)
@@ -22,6 +23,7 @@ while [ $# -gt 0 ]; do
 			shift 2
 			;;
 		-i|--interactive) interactive=1; shift ;;
+		-v|--verbose) verbose=1; shift ;;
 		--) shift; break ;;
 		*) break ;;
 	esac
@@ -31,19 +33,19 @@ git for-each-ref --format='%(refname:short)' "--merged=${target}" refs/heads/ |
 grep -Fvx "$target" |
 while read branch; do
 	if [[ "$branch" == "$currentBranch" ]]; then
-		echo "Not deleting '$branch' because it is the current branch"
+		[[ "$verbose" -eq 1 ]] && echo "Not deleting '$branch' because it is the current branch"
 		continue
 	fi
 
 	if [[ "$branch" == rc/* || "$branch" == rel/* ]]; then
-		echo "Not deleting '$branch' because it is a release branch"
+		[[ "$verbose" -eq 1 ]] && echo "Not deleting '$branch' because it is a release branch"
 		continue
 	fi
 
 	if [[ "$interactive" -eq 1 ]]; then
 		read -r -p "Delete '$branch'? [y/N] " reply </dev/tty
 		if [[ ! "$reply" =~ ^[Yy]$ ]]; then
-			echo "Skipping '$branch'"
+			[[ "$verbose" -eq 1 ]] && echo "Skipping '$branch'"
 			continue
 		fi
 	fi
