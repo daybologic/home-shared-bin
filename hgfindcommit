@@ -1,9 +1,11 @@
 #!/bin/sh
 
 all=0
+verbose=0
 while [ $# -gt 0 ]; do
 	case "$1" in
 		-a|--all) all=1; shift ;;
+		-v|--verbose) verbose=1; shift ;;
 		--) shift; break ;;
 		*) break ;;
 	esac
@@ -11,7 +13,9 @@ done
 
 for r in */.hg; do
 	repo="$(dirname "$r")"
-	echo "$(pwd)/$repo"
+	if [ "$verbose" -eq 1 ]; then
+		echo "$(pwd)/$repo"
+	fi
 	if hg -R "$repo" log --debug -r "$1" 2>/dev/null; then
 		if [ "$all" -eq 0 ]; then
 			exit 0
