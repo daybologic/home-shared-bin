@@ -10,6 +10,7 @@ fi
 currentBranch=$(git branch --show-current 2>/dev/null)
 
 target='master'
+interactive=0
 while [ $# -gt 0 ]; do
 	case "$1" in
 		-t|--target)
@@ -20,6 +21,7 @@ while [ $# -gt 0 ]; do
 			target=$2
 			shift 2
 			;;
+		-i|--interactive) interactive=1; shift ;;
 		--) shift; break ;;
 		*) break ;;
 	esac
@@ -31,6 +33,14 @@ while read branch; do
 	if [[ "$branch" == "$currentBranch" ]]; then
 		echo "Not deleting '$branch' because it is the current branch"
 		continue
+	fi
+
+	if [[ "$interactive" -eq 1 ]]; then
+		read -r -p "Delete '$branch'? [y/N] " reply
+		if [[ ! "$reply" =~ ^[Yy]$ ]]; then
+			echo "Skipping '$branch'"
+			continue
+		fi
 	fi
 
 	git branch -d "$branch"
