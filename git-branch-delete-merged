@@ -36,7 +36,7 @@ while read branch; do
 	fi
 
 	if [[ "$interactive" -eq 1 ]]; then
-		read -r -p "Delete '$branch'? [y/N] " reply
+		read -r -p "Delete '$branch'? [y/N] " reply </dev/tty
 		if [[ ! "$reply" =~ ^[Yy]$ ]]; then
 			echo "Skipping '$branch'"
 			continue
