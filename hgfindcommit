@@ -1,8 +1,23 @@
 #!/bin/sh
 
-for r in */.hg; do cd `dirname $r`;
-	pwd;
-	hg log --debug -r $1 2> /dev/null;
-	cd ..;
+all=0
+while [ $# -gt 0 ]; do
+	case "$1" in
+		-a|--all) all=1; shift ;;
+		--) shift; break ;;
+		*) break ;;
+	esac
 done
-exit 0;
+
+for r in */.hg; do
+	cd "$(dirname "$r")"
+	pwd
+	if hg log --debug -r "$1" 2>/dev/null; then
+		if [ "$all" -eq 0 ]; then
+			cd ..
+			exit 0
+		fi
+	fi
+	cd ..
+done
+exit 0
