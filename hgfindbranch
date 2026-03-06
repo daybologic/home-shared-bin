@@ -1,4 +1,25 @@
 #!/bin/sh
 
-for r in */.hg; do cd `dirname $r`; hg branches -c | grep -- $1 && pwd ; cd ..; done
-exit 0;
+all=0
+verbose=0
+while [ $# -gt 0 ]; do
+	case "$1" in
+		-a|--all) all=1; shift ;;
+		-v|--verbose) verbose=1; shift ;;
+		--) shift; break ;;
+		*) break ;;
+	esac
+done
+
+for r in */.hg; do
+	repo="$(dirname "$r")"
+	if [ "$verbose" -eq 1 ]; then
+		echo "$(pwd)/$repo"
+	fi
+	if hg -R "$repo" branches -c | grep -- "$1"; then
+		if [ "$all" -eq 0 ]; then
+			exit 0
+		fi
+	fi
+done
+exit 0
