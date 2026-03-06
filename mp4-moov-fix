@@ -1,0 +1,17 @@
+#!/bin/bash
+set -euo pipefail
+
+while IFS= read -r -d '' f; do
+	dir=$(dirname "$f")
+	base=$(basename "$f")
+
+	# Temp file in same dir, keeping a .mp4 suffix so ffmpeg knows the container.
+	tmp=$(mktemp --tmpdir="$dir" ".${base}.XXXXXX.mp4")
+
+	if ffmpeg -nostdin -y -i "$f" -c copy -movflags +faststart -f mp4 "$tmp"; then
+		mv -f "$tmp" "$f"
+	else
+		echo "ffmpeg failed for: $f" >&2
+		rm -f "$tmp"
+	fi
+done < <(find . -type f -iname '*.mp4' -print0)
