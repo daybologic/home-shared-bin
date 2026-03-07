@@ -48,8 +48,8 @@ while read branch; do
 	fi
 
 	if [[ "$interactive" -eq 1 ]]; then
-		read -r -p "Delete '$branch'? [y/N/d] " reply </dev/tty
-		if [[ "$reply" =~ ^[Dd]$ ]]; then
+		read -r -p "Delete '$branch'? [y/N/q] " reply </dev/tty
+		if [[ "$reply" =~ ^[Qq]$ ]]; then
 			exit 0
 		fi
 		if [[ ! "$reply" =~ ^[Yy]$ ]]; then
