@@ -35,8 +35,8 @@ if [[ ! -n "{remotely:-}" ]]; then
 	setRemoteRootBranchNameVar
 fi
 
-remotely=${remotely#origin/}
 if [[ -n "${remotely:-}" ]]; then
+	remotely=${remotely#origin/}
 	rootBranchName="$remotely"
 fi
 
