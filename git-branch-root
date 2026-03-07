@@ -19,12 +19,12 @@ fi
 # master needs to be the default for legacy reasons, the vast majority of
 # repositories from 2005-2020 will have this.  So we'll start here and
 # find out if it is different later.
-master='master'
+rootBranchName='master'
 
 # Has it been overridden by an environment variable?
 if [[ -n "${GIT_BRANCH_ROOT_NAME:-}" ]]; then
-	master="$GIT_BRANCH_ROOT_NAME"
-	echo "$master"
+	rootBranchName="$GIT_BRANCH_ROOT_NAME"
+	echo "$rootBranchName"
 	exit 0
 fi
 
@@ -37,8 +37,8 @@ fi
 
 remotely=${remotely#origin/}
 if [[ -n "${remotely:-}" ]]; then
-	master="$remotely"
+	rootBranchName="$remotely"
 fi
 
-echo "$master"
+echo "$rootBranchName"
 exit 0
