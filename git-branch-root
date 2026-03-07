@@ -36,8 +36,7 @@ if [[ ! -n "{remotely:-}" ]]; then
 fi
 
 if [[ -n "${remotely:-}" ]]; then
-	remotely=${remotely#origin/}
-	rootBranchName="$remotely"
+	rootBranchName=${remotely#origin/}
 fi
 
 echo "$rootBranchName"
