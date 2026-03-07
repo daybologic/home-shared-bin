@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+# What is the Git branch which is the main/master/mainline/trunk, whatever?
+
+set -euo pipefail
+
+function fetchRemoteRootBranchName() {
+	git remote set-head origin -a 2>/dev/null
+}
+
+function setRemoteRootBranchNameVar() {
+	remotely=$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null)
+}
+
+if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+	>&2 echo "ERROR: Not in a Git repository"
+	exit 1
+fi
+
+# master needs to be the default for legacy reasons, the vast majority of
+# repositories from 2005-2020 will have this.  So we'll start here and
+# find out if it is different later.
+rootBranchName='master'
+
+# Has it been overridden by an environment variable?
+if [[ -n "${GIT_BRANCH_ROOT_NAME:-}" ]]; then
+	rootBranchName="$GIT_BRANCH_ROOT_NAME"
+	echo "$rootBranchName"
+	exit 0
+fi
+
+# let's check the remote name
+setRemoteRootBranchNameVar
+if [[ ! -n "{remotely:-}" ]]; then
+	fetchRemoteRootBranchName
+	setRemoteRootBranchNameVar
+fi
+
+if [[ -n "${remotely:-}" ]]; then
+	rootBranchName=${remotely#origin/}
+fi
+
+echo "$rootBranchName"
+exit 0
