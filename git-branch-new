@@ -120,5 +120,5 @@ fullBranchName="${branchType}/${branchName}/${iteration}"
 echo "${fullBranchName}"
 
 git stash push
-git switch master
+git switch $(git-branch-root)
 git checkout -b "${fullBranchName}"
