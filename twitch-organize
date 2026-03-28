@@ -1,0 +1,225 @@
+#!/usr/bin/env perl
+
+package Runner;
+use strict;
+use warnings;
+
+use Data::Dumper;
+use English;
+use File::Copy;
+use File::Path qw(make_path);
+use File::Find::Wanted;
+use File::stat;
+use Getopt::Std;
+use IO::File;
+use Moose;
+use POSIX qw(EXIT_SUCCESS);
+
+has streamerMap => (isa => 'HashRef[Str]', is => 'ro', default => \&__makeStreamerMap);
+
+has keepVideoFor => (isa => 'HashRef[Str]', is => 'ro', default => \&__makeKeepVideoFor);
+
+sub __makeStreamerMap {
+	return {
+		'TheReal_DJEdit'    => 'The_Real_DJ_Edit',
+		'Daffie_'           => 'TranceDaffie',
+		'GavCrayton_DJ'     => 'gavcrayton',
+		'LangeDJ'           => 'Lange',
+		'TriodeOfficial'    => 'TRIODEOfficial',
+		'BiskitCloudMusic'  => 'BiskitCloud',
+		'MrPopnDJ'          => 'MrPopn',
+		'darksin'           => 'DarkSin',
+		'DarkSinTripper'    => 'DarkSin',
+		'djDarkSin'         => 'DarkSin',
+		'darksinTRIPPER'    => 'DarkSin',
+		'djdarksin'         => 'DarkSin',
+		'DJDARKSIN'         => 'DarkSin',
+		'easyfm'            => 'EasyFM',
+		'MelodicFM'         => 'EasyFM',
+		'FACTOReOfficial'   => 'djFACTOReE',
+		'JenniferRenePlays' => 'JenniferReneMusic',
+		'maryle_mar'        => 'MaryLe_Mar',
+		'djryan_k'          => 'Rjayker',
+		'amytrance22'       => 'amytrance21',
+	};
+}
+
+sub __makeKeepVideoFor {
+	my @list = (qw(
+		AleksCraine
+		AlessandraRoncone_music
+		amelia000000
+		Eternal_XTC
+		floridauplifting
+		gabrielanddresden
+		HANAWINS
+		IdiotWithAGrill
+		JenniferReneMusic
+		JskaDwn
+		Kailey_Grace
+		LeeJOfficial
+		leejtranzalitystudios
+		liammelly
+		LionaStone
+		LoaLaLunaDj
+		LuminosityEvents
+		MIKEPush
+		OfficialJES
+		RinalyMusic
+		taucher66
+		very_squishy_fox
+	));
+
+	my %map = map { $_ => 1 } @list;
+	return \%map;
+}
+
+sub run {
+	my ($self) = @_;
+	my %opts;
+
+	getopts('i', \%opts);
+	my $importMode = $opts{i};
+
+	my @dirs;
+
+	if ($importMode) {
+		@dirs = ('/mnt/totem/media/Twitch_Incoming');
+	} else {
+		@dirs = ('/mnt/totem/media/audio/music/Twitch');
+	}
+
+	my @medias = find_wanted(sub { -f && /\((live|rerun)\).*\.(mp4|mkv|mp3|m4a)$/ }, @dirs);
+
+	my %bigHash;
+	my %streamers;
+	my %uniqId;
+	my ($mediaCount, $videoCount, $audioCount) = (0, 0, 0);
+
+	foreach my $mediaFullPath (@medias) {
+		my @parts = split(m/\//, $mediaFullPath);
+		my $media = $parts[-1];
+		if (
+			$media =~ m/^(\w+) \((live|rerun)\) (20\d{2}-\d{2}-\d{2}) (\d{2}_\d{2})-(\d+).*(mp4|mkv|mp3|m4a)$/ ||
+			$media =~ m/^(\w+) \((live|rerun)\) (20\d{2}-\d{2}-\d{2}) (\d{2}_\d{2})\s\[(\d+)\].*(mp4|mkv|mp3|m4a)$/ ||
+			$media =~ m/^(\w+) \((live|rerun)\) (20\d{2}-\d{2}-\d{2})_MP3WRAP(-\w+)?.mp3$/ ||
+			$media =~ m/^(\w+) \((live|rerun)\) (20\d{2}-\d{2}-\d{2}) (\d{2}_\d{2})_MP3WRAP(-\w+)?.mp3$/ ||
+			$media =~ m/^(\w+) \((live|rerun)\) (20\d{2}-\d{2}-\d{2})_MP3WRAP(-\w+\-\w+)?.mp3$/ ||
+			$media =~ m/^(\w+) \((live|rerun)\) (20\d{2}-\d{2}-\d{2}) (\d{2}_\d{2})_MP3WRAP(-\w+\-\w+)?.mp3$/
+		) {
+			my ($streamer, undef, $date, $time, $id) = ($1, undef, $3, $4, $5);
+			$mediaCount++;
+			my $extension = getExtension($media);
+
+			$date = '' unless ($date);
+			$time = '' unless ($time);
+
+			if ($extension eq 'mp3' || $extension eq 'm4a') {
+				$audioCount++;
+			} else {
+				$videoCount++;
+			}
+
+			if ($id && $id =~ m/^\d+$/) {
+				my $key = join('/', $streamer, $date, $time, $id);
+				$bigHash{$key}{$extension} = $mediaFullPath;
+
+				$uniqId{$id} = [ ] unless ($uniqId{$id});
+				push(@{ $uniqId{$id} }, $mediaFullPath);
+			}
+
+			$streamers{$streamer} = [ ] unless (exists($streamers{$streamer}));
+			push(@{ $streamers{$streamer} }, $mediaFullPath);
+
+			warn(sprintf("We would keep video for '%s'", $streamer)) if ($self->keepVideoFor->{$streamer});
+		}
+	}
+
+	my $dupCountByUniqId = 0;
+	my @uniqIdDelete;
+	foreach my $id (keys(%uniqId)) {
+		my $paths = $uniqId{$id};
+		if (scalar(@$paths) > 1) {
+			$dupCountByUniqId++;
+		} else {
+			push(@uniqIdDelete, $id);
+		}
+	}
+
+	foreach my $id (@uniqIdDelete) {
+		delete($uniqId{$id});
+	}
+
+	my $both = 0;
+	if (scalar(keys(%bigHash)) > 0) {
+		my $fh = IO::File->new("> $ENV{HOME}/video-report.txt");
+		die($ERRNO) unless defined $fh;
+
+		foreach my $key (keys(%bigHash)) {
+			my $audio = $bigHash{$key}{mp3} // $bigHash{$key}{m4a};
+			my $video = $bigHash{$key}{mp4} // $bigHash{$key}{mkv};
+
+			if ($video && $audio) {
+				printf($fh "%s\n---\nAudio: %s\nVideo: %s\n\n", $key, $audio, $video);
+				$both++;
+			}
+		}
+
+		if (scalar(keys(%uniqId)) > 0) {
+			print($fh "The following files have more than one Twitch ID per stream and should be concatinated:\n\n");
+			#print $fh Data::Dumper->Dump(\%uniqId); # FIXME: This doesn't work
+			print Dumper \%uniqId; # FIXME: Doing this because the above doesn't work
+		}
+	}
+
+	printf("%d media files detected, of which %d are videos and %d are audio, %d have both, %d duplicate by Twitch ID!\n",
+	    $mediaCount, $videoCount, $audioCount, $both, $dupCountByUniqId);
+
+	return EXIT_SUCCESS unless ($importMode);
+
+	foreach my $streamer (keys(%streamers)) {
+		my $mappedStreamer = $self->streamerMap->{$streamer} || $streamer;
+		my $subDir = lc(substr($mappedStreamer, 0, 1));
+
+		my $dir = "/mnt/totem/media/audio/music/Twitch/$subDir/$mappedStreamer";
+		if (-d $dir) {
+			foreach my $mediaFullPath (@{ $streamers{$streamer} }) {
+				my $sb = stat($mediaFullPath);
+				next if !$sb;
+				my $age = time() - $sb->ctime;
+				if ($age < 180) {
+					printf("'%s' skipped because it is too young\n", $mediaFullPath);
+					next;
+				}
+
+				my @parts = split('/', $mediaFullPath);
+				my $filename = $parts[-1];
+				printf("'%s' -> '%s'\n", $mediaFullPath, "$dir/$filename");
+				move($mediaFullPath, "$dir/$filename");
+			}
+		} else {
+			warn(sprintf("'%s' does not exist for streamer '%s'", $dir, $streamer));
+			die("Cannot make directory '$dir'") if (scalar(make_path($dir) == 0));
+			warn(sprintf("Created directory '%s'", $dir));
+			redo;
+		}
+	}
+
+	return EXIT_SUCCESS;
+}
+
+sub getExtension {
+	my ($filename) = @_;
+	my @parts = split(m/\./, $filename);
+	return $parts[-1];
+}
+
+package main;
+use strict;
+use warnings;
+
+sub main {
+	return Runner->new->run();
+}
+
+exit(main());
