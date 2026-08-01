@@ -1,0 +1,264 @@
+#!/usr/bin/env bash
+
+set -u
+set -o pipefail
+
+usage()
+{
+	echo "Usage: ${0##*/} [-y | -n]" >&2
+}
+
+answer=
+
+while getopts ':yn' option; do
+	case "$option" in
+		y)
+			[ -z "$answer" ] || {
+				echo "${0##*/}: -y and -n cannot be used together" >&2
+				usage
+				exit 2
+			}
+			answer=yes
+			;;
+		n)
+			[ -z "$answer" ] || {
+				echo "${0##*/}: -y and -n cannot be used together" >&2
+				usage
+				exit 2
+			}
+			answer=no
+			;;
+		*)
+			usage
+			exit 2
+			;;
+	esac
+done
+shift "$((OPTIND - 1))"
+
+if [ "$#" -ne 0 ]; then
+	usage
+	exit 2
+fi
+
+if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+	echo "${0##*/}: not in a Git working directory" >&2
+	exit 1
+fi
+
+repository_root=$(git rev-parse --show-toplevel) || exit 1
+prune_file=$repository_root/.gitprune
+
+if [ -e "$prune_file" ] && [ ! -f "$prune_file" ]; then
+	echo "${0##*/}: '$prune_file' is not a regular file" >&2
+	exit 1
+fi
+
+mapfile -t remotes < <(git remote)
+
+if [ "${#remotes[@]}" -lt 2 ]; then
+	echo "${0##*/}: at least two Git remotes are required" >&2
+	exit 1
+fi
+
+have_origin=no
+have_archive=no
+other_remotes=()
+for remote in "${remotes[@]}"; do
+	case "$remote" in
+		origin)
+			have_origin=yes
+			other_remotes+=("$remote")
+			;;
+		archive)
+			have_archive=yes
+			;;
+		*)
+			other_remotes+=("$remote")
+			;;
+	esac
+done
+
+if [ "$have_origin" != yes ] || [ "$have_archive" != yes ]; then
+	echo "${0##*/}: remotes named 'origin' and 'archive' are required" >&2
+	exit 1
+fi
+
+main_branch=$(git config --global --get init.defaultBranch 2>/dev/null || :)
+main_branch=${main_branch:-master}
+
+if ! git show-ref --verify --quiet "refs/heads/$main_branch"; then
+	echo "${0##*/}: main branch '$main_branch' does not exist locally" >&2
+	exit 1
+fi
+
+mapfile -t branches < <(
+	git for-each-ref \
+		--format='%(refname:lstrip=2)' \
+		--merged="$main_branch" \
+		refs/heads |
+	while IFS= read -r branch; do
+		case "$branch" in
+			"$main_branch"|rel/*)
+				;;
+			*)
+				if [ ! -f "$prune_file" ] ||
+					! grep --fixed-strings --line-regexp --quiet -- "$branch" "$prune_file"; then
+					printf '%s\n' "$branch"
+				fi
+				;;
+		esac
+	done
+)
+
+branch_word=branches
+[ "${#branches[@]}" -eq 1 ] && branch_word=branch
+echo "${#branches[@]} fully merged local $branch_word to process (main branch: $main_branch)."
+
+failures=0
+
+for branch in "${branches[@]}"; do
+	delete=no
+	case "$answer" in
+		yes)
+			delete=yes
+			echo "Deleting '$branch' (-y)."
+			;;
+		no)
+			echo "Keeping '$branch' (-n)."
+			;;
+		*)
+			mapfile -t branch_reflog < <(
+				git reflog show --format='%gs' "refs/heads/$branch" 2>/dev/null
+			)
+			if [ "${#branch_reflog[@]}" -eq 1 ]; then
+				case "${branch_reflog[0]}" in
+					'branch: Created from '*)
+						echo "WARNING: '$branch' appears untouched since it was created." >&2
+						;;
+				esac
+			fi
+
+			while :; do
+				printf "Archive and delete local branch '%s'? [y/N/q/i] " "$branch"
+				if ! IFS= read -r reply; then
+					echo
+					reply=no
+				fi
+				case "$reply" in
+					y|Y|yes|YES|Yes)
+						delete=yes
+						break
+						;;
+					q|Q|quit|QUIT|Quit)
+						echo "Quitting."
+						exit 0
+						;;
+					i|I|ignore|IGNORE|Ignore)
+						if [ -s "$prune_file" ] && [ -n "$(tail -c 1 -- "$prune_file")" ]; then
+							printf '\n' >> "$prune_file" || {
+								echo "${0##*/}: could not update '$prune_file'" >&2
+								exit 1
+							}
+						fi
+						printf '%s\n' "$branch" >> "$prune_file" || {
+							echo "${0##*/}: could not update '$prune_file'" >&2
+							exit 1
+						}
+						echo "Ignoring '$branch' (added to '$prune_file')."
+						break
+						;;
+					''|n|N|no|NO|No)
+						break
+						;;
+					*)
+						echo "Please answer yes, no, quit, or ignore."
+						;;
+				esac
+			done
+			;;
+	esac
+
+	[ "$delete" = yes ] || continue
+
+	remote_names=()
+	remote_oids=()
+	safe=yes
+
+	for remote in "${other_remotes[@]}"; do
+		remote_ref="refs/heads/$branch"
+		remote_line=
+		if remote_line=$(git ls-remote --exit-code --heads "$remote" "$remote_ref"); then
+			remote_oid=${remote_line%%[[:space:]]*}
+		else
+			status=$?
+			if [ "$status" -eq 2 ]; then
+				continue
+			fi
+			echo "${0##*/}: could not inspect '$remote/$branch'; keeping '$branch'" >&2
+			safe=no
+			break
+		fi
+
+		echo "Checking '$remote/$branch' for new commits..."
+		if ! git fetch --quiet --no-tags "$remote" "$remote_ref"; then
+			echo "${0##*/}: could not fetch '$remote/$branch'; keeping '$branch'" >&2
+			safe=no
+			break
+		fi
+
+		fetched_oid=$(git rev-parse --verify FETCH_HEAD) || {
+			echo "${0##*/}: could not resolve fetched '$remote/$branch'; keeping '$branch'" >&2
+			safe=no
+			break
+		}
+
+		# The ref may have advanced between ls-remote and fetch.  The fetched
+		# value is the one checked here and protected by --force-with-lease below.
+		remote_oid=$fetched_oid
+		if ! git merge-base --is-ancestor "$remote_oid" "$branch"; then
+			echo "${0##*/}: '$remote/$branch' contains commits not in local '$branch'; keeping it" >&2
+			safe=no
+			break
+		fi
+
+		remote_names+=("$remote")
+		remote_oids+=("$remote_oid")
+	done
+
+	if [ "$safe" != yes ]; then
+		failures=$((failures + 1))
+		continue
+	fi
+
+	echo "Pushing '$branch' to archive..."
+	if ! git push archive "refs/heads/$branch:refs/heads/$branch"; then
+		echo "${0##*/}: archiving '$branch' failed; keeping the local branch and other remote refs" >&2
+		failures=$((failures + 1))
+		continue
+	fi
+
+	if ! git branch -d -- "$branch"; then
+		echo "${0##*/}: local deletion of '$branch' failed; other remote refs were not deleted" >&2
+		failures=$((failures + 1))
+		continue
+	fi
+
+	for index in "${!remote_names[@]}"; do
+		remote=${remote_names[$index]}
+		remote_oid=${remote_oids[$index]}
+		echo "Deleting '$remote/$branch'..."
+		if ! git push \
+			"--force-with-lease=refs/heads/$branch:$remote_oid" \
+			"$remote" \
+			":refs/heads/$branch"; then
+			echo "${0##*/}: deletion of '$remote/$branch' failed or the ref changed" >&2
+			failures=$((failures + 1))
+		fi
+	done
+done
+
+if [ "$failures" -ne 0 ]; then
+	echo "${0##*/}: completed with $failures failure(s)" >&2
+	exit 1
+fi
