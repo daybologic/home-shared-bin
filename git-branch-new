@@ -1,0 +1,128 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Ignominious exit if we're not the Git repo
+git -C . rev-parse 2>/dev/null
+
+branchTypes=(bugfix docs feature hotfix maint platform private refactor tests rel)
+
+function listBranchTypes() {
+	i=1
+	for supportedBranchType in "${branchTypes[@]}"; do
+		printf "%d) %s\n" $i "$supportedBranchType"
+		((i++))
+	done
+}
+
+function askDescription() {
+	echo
+	echo "What is the name of the branch or a description?"
+	echo "You can specify a loose description and we'll coerce it, or just a basic few words"
+	echo "eg. branch-name"
+	echo "eh. my branch 123"
+	echo
+	echo "You must not specify the kind of branch nor anything containing a forward-slash"
+	echo "but we'll coerce what we can."
+	echo
+	while true; do
+		read -r -p 'branch name: ' branchDescription
+		if [ -z "$branchDescription" ]; then
+			>&2 echo "aborted"
+			exit 2
+		fi
+		branchName=$(echo "$branchDescription" | tr '[:upper:]' '[:lower:]' | tr -s ' ' '-')
+		branchName=$(echo "$branchName" | LC_CTYPE=C iconv -c -f utf8 -t ascii)
+		branchName=$(echo "$branchName" | sed 's/[^a-zA-Z0-9]/-/g')
+		branchName=$(echo "$branchName" | tr -s '-')
+		maxlen=40
+		branchName="${branchName:0:maxlen}"
+		branchName="${branchName%%-}"
+		branchName="${branchName##-}"
+
+		if [[ -z "$branchName" ]]; then
+			>&2 echo "ERROR: The specified description can't be rendered into a string of any length, please try again"
+			continue
+		fi
+
+		while true; do
+			printf "Does '%s' seem cromulent? " "$branchName"
+			read -r confirm
+			if [[ ! -z "$confirm" ]]; then
+				case "$confirm" in
+					[Yy]*)
+						break 2
+						;;
+					[Nn]*)
+						echo 'OK, please think up another branch description'
+						break
+						;;
+					*)
+						>&2 echo 'ERROR: Please specify yes or no'
+						continue
+						;;
+				esac
+			fi
+		done
+	done
+}
+
+
+echo "What kind of branch do you want?"
+echo "You can specify the index of the option, or the option by name"
+echo "do not specify the full branch name here, just the kind"
+echo
+while true; do
+	listBranchTypes
+
+	read -r -p 'What kind of branch (empty to exit)? ' branchType
+	if [[ -z "$branchType" ]]; then
+		>&2 echo "aborted"
+		exit 2
+	fi
+
+	if [[ "$branchType" =~ ^[0-9]+$ ]]; then
+		itemCount="${#branchTypes[@]}"
+		((branchType--))
+		if (( branchType >= 0 && branchType < ${#branchTypes[@]} )); then
+			branchType="${branchTypes[$branchType]}"
+			echo "$branchType"
+			break 2
+		fi
+	else
+		for supportedBranchType in "${branchTypes[@]}"; do
+			if [[ "$supportedBranchType" == "$branchType" ]]; then
+				break 2
+			fi
+		done
+	fi
+
+	>&2 printf "ERROR: '%s' is not supported\n\n" "$branchType"
+done
+
+case "$branchType" in
+	platform)
+		>&2 printf "ERROR: For '%s' branch types, please make the branch by hand for now\n\n" "$branchType"
+		;;
+	rel)
+		>&2 echo "ERROR: this is the wrong tool for performing releases, we don't presently have a release tool but this will appear very soon"
+		;;
+	docs|feature|bugfix|hotfix|maint|private|refactor|tests)   # multiple matches
+		askDescription
+		;;
+	*)
+		# default case (like "else")
+		>&2 printf "ERROR: '%s' is not supported properly in strategy block (inform developer)\n\n" "$branchType"
+		;;
+esac
+
+iteration=1
+fullBranchName="${branchType}/${branchName}/${iteration}"
+echo "${fullBranchName}"
+
+git stash push
+
+rootBranch='master'
+command -v git-branch-root >/dev/null 2>&1 && rootBranch=$(git-branch-root)
+git switch "$rootBranch"
+
+git checkout -b "${fullBranchName}"
